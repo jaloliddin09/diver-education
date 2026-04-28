@@ -144,18 +144,18 @@ function applySettings() {
 
   var sbg = document.getElementById('set-bg-url'); if(sbg) sbg.value = bgUrl;
 
-  // ── ICON URL ── favicon va manifest icon
+  // ── ICON URL ── favicon, manifest va PWA icon
   var iconUrl = s.iconUrl || '';
   if(iconUrl) {
-    // Favicon yangilash
+    // 1. Favicon
     var favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
     if(!favicon) { favicon = document.createElement('link'); favicon.rel = 'icon'; document.head.appendChild(favicon); }
     favicon.href = iconUrl;
-    // PWA apple-touch-icon
+    // 2. Apple touch icon
     var apple = document.querySelector('link[rel="apple-touch-icon"]');
     if(!apple) { apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; document.head.appendChild(apple); }
     apple.href = iconUrl;
-    // Login icon va header iconlarini rasm bilan almashtirish
+    // 3. Header iconlarini rasm bilan almashtirish
     ['login-icon','admin-logo-icon','parent-logo-icon','guest-logo-icon'].forEach(function(id){
       var el = document.getElementById(id);
       if(!el) return;
@@ -164,11 +164,47 @@ function applySettings() {
       el.style.backgroundPosition = 'center';
       el.textContent = '';
     });
-    // Preview yangilash
+    // 4. PWA manifest — dinamik yangilash (o'rnatishda ham ko'rinadi)
+    try {
+      var siteName = s.siteName || 'Jaloliddin Math';
+      var manifestData = {
+        name: siteName,
+        short_name: siteName.split(' ')[0],
+        description: "O'quvchilar baholash tizimi",
+        start_url: './index.html',
+        display: 'standalone',
+        background_color: '#0F172A',
+        theme_color: '#1E293B',
+        orientation: 'portrait',
+        icons: [
+          { src: iconUrl, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: iconUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: iconUrl, sizes: 'any', type: iconUrl.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png', purpose: 'any maskable' }
+        ]
+      };
+      var blob = new Blob([JSON.stringify(manifestData)], {type:'application/json'});
+      var blobUrl = URL.createObjectURL(blob);
+      var manifestLink = document.querySelector('link[rel="manifest"]');
+      if(manifestLink) {
+        // Eski blob URL ni tozalaymiz
+        if(manifestLink._blobUrl) URL.revokeObjectURL(manifestLink._blobUrl);
+        manifestLink._blobUrl = blobUrl;
+        manifestLink.href = blobUrl;
+      }
+    } catch(e) { console.warn('Manifest update:', e); }
+    // 5. Admin preview
     var prev = document.getElementById('icon-preview');
     if(prev) { prev.src = iconUrl; prev.style.display = 'block'; }
     var iconInp = document.getElementById('set-icon-url');
     if(iconInp && !iconInp.value) iconInp.value = iconUrl;
+  } else {
+    // Default SVG ga qaytish
+    var manifestLink2 = document.querySelector('link[rel='+"'manifest'"+']');
+    if(manifestLink2 && manifestLink2._blobUrl) {
+      URL.revokeObjectURL(manifestLink2._blobUrl);
+      manifestLink2._blobUrl = null;
+      manifestLink2.href = 'manifest.json';
+    }
   }
 
   if(typeof applyLabels==='function') applyLabels();
