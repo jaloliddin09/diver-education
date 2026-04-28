@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Jaloliddin Math</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1E293B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jaloliddin Math">
+<link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/icons/icon.svg">
+<!-- ╔═══════════════════════════╗ -->
+<!-- ║  CSS — css/ papkasida    ║ -->
+<!-- ╚═══════════════════════════╝ -->
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/samara.css">
+<link rel="stylesheet" href="css/posts.css">
+</head>
+<body>
+<div id="bg-img" style="position:fixed;inset:0;z-index:-2;background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat;background-color:#0F172A"></div>
+<canvas id="bg-canvas" style="position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:none"></canvas>
+<script src="js/bg-anim.js"></script>
+
+<!-- === html/loading.html === -->
+<!-- ===== LOADING ===== -->
+<div id="loading">
+  <div class="spin"></div>
+  <h1>📐 Jaloliddin Math</h1>
+  <p>Yuklanmoqda...</p>
+</div>
+
+<!-- === html/pwa-modals.html === -->
+<!-- ===== PWA INSTALL MODAL ===== -->
+<div id="pwa-modal">
+  <div class="pwa-modal-card">
+    <div class="pwa-modal-icon">📱</div>
+    <div class="pwa-modal-title" id="pwa-modal-title">Ilovani o'rnating</div>
+    <div class="pwa-modal-desc">O'qituvchi <b id="pwa-app-name">Jaloliddin Math</b> ilovasini o'rnatishingizni tavsiya qiladi.<br>Tezroq kirish uchun qulay!</div>
+    <div class="pwa-modal-btns">
+      <button type="button" class="btn btn-primary" onclick="pwaTriggerInstall()">📲 O'rnatish</button>
+      <button type="button" class="btn btn-ghost" onclick="pwaDismissModal()">Keyinroq</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PWA MANUAL INSTALL MODAL ===== -->
+<div id="pwa-manual-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:9998;padding:20px">
+  <div class="pwa-modal-card" style="max-width:360px">
+    <div class="pwa-modal-icon">📲</div>
+    <div class="pwa-modal-title">Ilovani o'rnating</div>
+    <div class="pwa-modal-desc" style="text-align:left;font-size:.82rem;line-height:1.9" id="pwa-manual-steps">
+      <b>Android (Chrome):</b><br>
+      ⋮ Menyu → <i>Bosh ekranga qo'shish</i><br><br>
+      <b>iPhone (Safari):</b><br>
+      <span style="font-size:1.1em">⎙</span> Ulashish → <i>Bosh ekranga qo'shish</i><br><br>
+      <b>Desktop (Chrome/Edge):</b><br>
+      Manzil satridagi <b>⊕</b> yoki <b>💻</b> belgini bosing
+    </div>
+    <div class="pwa-modal-btns">
+      <button type="button" class="btn btn-ghost" onclick="document.getElementById('pwa-manual-modal').style.display='none'">Yopish</button>
+    </div>
+  </div>
+</div>
+
+<!-- === html/login.html === -->
+<!-- ===== LOGIN ===== -->
+<div id="login" style="display:none;align-items:center;justify-content:center">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon" id="login-icon" onclick="iconSecretClick()" style="cursor:default;user-select:none">📐</div>
+      <h1 id="login-title">Jaloliddin Math</h1>
+      <p id="login-version">Baholash tizimi v1.4</p>
+    </div>
+    <div class="login-tabs">
+      <button class="ltab active" id="ltab-parent" onclick="switchTab('parent')">👨‍👩‍👧 Ota-ona</button>
+      <button class="ltab" id="ltab-guest" onclick="switchTab('guest')">👥 Mehmon</button>
+    </div>
+    <div id="parent-login-form">
+      <div class="form-group">
+        <label>O'quvchi parolini kiriting</label>
+        <input type="number" id="pin-inp" placeholder="4 xonali PIN" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+    </div>
+    <div id="guest-login-form" style="display:none">
+      <div style="text-align:center;padding:18px 0 8px">
+        <div style="font-size:2rem;margin-bottom:8px">👥</div>
+        <p style="color:var(--text2);font-size:.85rem;line-height:1.5">Mehmon sifatida kirish uchun<br>quyidagi tugmani bosing</p>
+      </div>
+    </div>
+    <div id="admin-login-form" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <button onclick="closeAdminLogin()" style="background:var(--bg3);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text2);font-size:.85rem">← Orqaga</button>
+        <span style="color:var(--text2);font-size:.82rem;font-weight:600">Admin kirishi</span>
+      </div>
+      <div class="form-group">
+        <label>Maxfiy kod</label>
+        <input type="password" id="pass-inp" placeholder="Kodni kiriting" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+    </div>
+    <div class="login-err" id="login-err">❌ Noto'g'ri ma'lumot</div>
+    <button class="btn-login" id="login-main-btn" onclick="doLogin()">Kirish →</button>
+    <div id="login-install-banner">
+      <div class="lib-icon">📲</div>
+      <div class="lib-txt">
+        <div class="lib-title">Ilovani o'rnatish tavsiya etiladi</div>
+        <div class="lib-sub">Tezroq kirish • Oflayn ishlaydi • Xotira tejaydi</div>
+      </div>
+      <button class="lib-btn" onclick="_doInstall()">📥 O'rnatish</button>
+    </div>
+  </div>
+</div>
+
+<!-- === html/guest-app.html === -->
+<!-- ===== GUEST APP ===== -->
+<div id="guest-app" style="display:none;flex-direction:column;min-height:100vh">
+  <!-- Header -->
+  <header style="background:linear-gradient(135deg,#1E1B4B,#0F172A);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div class="icon" id="guest-logo-icon" style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">📐</div>
+      <span id="guest-site-name" style="color:#fff;font-size:1rem;font-weight:800">MY Math!</span>
+    </div>
+    <button onclick="logout()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);border-radius:8px;padding:6px 12px;font-size:.78rem;cursor:pointer;font-weight:600">← Chiqish</button>
+  </header>
+
+  <!-- Page content -->
+  <div style="flex:1;overflow-y:auto;padding-bottom:72px" id="guest-content">
+    <!-- HOME page — salomlashuv + e'lonlar -->
+    <div id="gp-home" class="guest-page active">
+      <div style="background:linear-gradient(135deg,#1E1B4B 0%,#312E81 40%,#0F172A 100%);padding:22px 16px 20px;position:relative;overflow:hidden">
+        <div style="position:absolute;width:160px;height:160px;border-radius:50%;background:rgba(139,92,246,.18);top:-50px;right:-30px;pointer-events:none"></div>
+        <div style="position:absolute;width:100px;height:100px;border-radius:50%;background:rgba(59,130,246,.12);bottom:-30px;left:-15px;pointer-events:none"></div>
+        <div style="display:flex;align-items:center;gap:12px;position:relative">
+          <div style="width:48px;height:48px;background:linear-gradient(135deg,#8B5CF6,#3B82F6);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;box-shadow:0 4px 16px rgba(139,92,246,.4)">📐</div>
+          <div>
+            <div id="guest-site-name2" style="color:#fff;font-size:1.05rem;font-weight:800;line-height:1.2">Jaloliddin Math</div>
+            <div style="color:rgba(255,255,255,.5);font-size:.75rem;margin-top:2px" id="txt-guest-platform">O'quvchilar platformasi</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px">
+        <div id="guest-home-posts"></div>
+        <div id="guest-daily" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- SAMARA page — reyting + statistika -->
+    <div id="gp-samara" class="guest-page">
+      <div style="padding:14px">
+        <div style="font-size:1rem;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:10px">📊 Samara va Reyting</div>
+        <div style="display:flex;gap:5px;margin-bottom:14px" id="samara-period-btns">
+          <button class="gpt2 on" onclick="setGuestSamaraPeriod('today',this)">Bugun</button>
+          <button class="gpt2" onclick="setGuestSamaraPeriod('week',this)">Hafta</button>
+          <button class="gpt2" onclick="setGuestSamaraPeriod('month',this)">Oy</button>
+          <button class="gpt2" onclick="setGuestSamaraPeriod('all',this)">Barchasi</button>
+        </div>
+        <div id="guest-top3"></div>
+        <div id="guest-rest"></div>
+      </div>
+    </div>
+
+    <!-- APPS page -->
+    <div id="gp-apps" class="guest-page">
+      <div style="padding:14px">
+        <div style="font-size:1rem;font-weight:800;color:rgba(255,255,255,.9);margin-bottom:14px">🧩 Foydali Ilovalar</div>
+        <div id="guest-apps-section"></div>
+      </div>
+    </div>
+
+    <!-- CONTACT page -->
+    <div id="gp-contact" class="guest-page">
+      <div style="padding:14px">
+        <div style="background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(59,130,246,.15));border:1px solid rgba(139,92,246,.3);border-radius:14px;padding:18px;margin-bottom:12px">
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:4px">📐 Jaloliddin Math</div>
+          <div style="font-size:.78rem;color:rgba(255,255,255,.6)" id="txt-guest-subtitle">Professional matematika o'qituvchisi</div>
+        </div>
+        <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px">
+          <a href="tel:+998973739605" style="display:flex;align-items:center;gap:12px;text-decoration:none">
+            <div style="width:40px;height:40px;background:rgba(16,185,129,.2);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📞</div>
+            <div><div style="font-size:.78rem;color:rgba(255,255,255,.5);font-weight:600">Telefon</div><div style="font-size:.92rem;color:#fff;font-weight:700">+998 97 373 96 05</div></div>
+          </a>
+          <a href="https://t.me/Jaloliddin_Sirojiddinov" target="_blank" style="display:flex;align-items:center;gap:12px;text-decoration:none">
+            <div style="width:40px;height:40px;background:rgba(59,130,246,.2);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">✈️</div>
+            <div><div style="font-size:.78rem;color:rgba(255,255,255,.5);font-weight:600">Telegram</div><div style="font-size:.92rem;color:#fff;font-weight:700">@Jaloliddin_Sirojiddinov</div></div>
+          </a>
+        </div>
+        
+        <div style="margin-top:16px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:14px;padding:16px">
+          <div style="font-size:.95rem;font-weight:800;color:#fff;margin-bottom:4px">📝 Kursga yozilish</div>
+          <div style="font-size:.78rem;color:rgba(255,255,255,.5);margin-bottom:14px">Ma'lumotlaringizni qoldiring, o'qituvchi siz bilan bog'lanadi</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <input id="enroll-name" type="text" placeholder="Ism va Familya" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:11px 13px;color:#fff;font-size:.88rem;width:100%;outline:none">
+            <div style="display:flex;gap:8px">
+              <input id="enroll-grade" type="text" placeholder="Sinf (masalan: 9-A)" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:11px 13px;color:#fff;font-size:.88rem;flex:1;outline:none">
+              <input id="enroll-phone" type="tel" placeholder="Telefon raqam" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:11px 13px;color:#fff;font-size:.88rem;flex:1;outline:none">
+            </div>
+            <button onclick="submitEnrollment()" style="width:100%;padding:12px;background:linear-gradient(135deg,#3B82F6,#6366F1);color:#fff;border:none;border-radius:9px;font-size:.9rem;font-weight:700;cursor:pointer">📤 So'rov yuborish</button>
+            <div id="enroll-msg" style="font-size:.8rem;text-align:center;display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav style="position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:rgba(15,23,42,.97);backdrop-filter:blur(16px);border-top:1px solid rgba(255,255,255,.08);display:flex;height:60px;z-index:200">
+    <button class="gnav-btn active" onclick="showGuestPage('home',this)"><span class="ni">🏡</span><span class="nl">Bosh</span></button>
+    <button class="gnav-btn" onclick="showGuestPage('samara',this)"><span class="ni">📊</span><span class="nl">Samara</span></button>
+    <button class="gnav-btn" onclick="showGuestPage('apps',this)"><span class="ni">📱</span><span class="nl">Ilovalar</span></button>
+    <button class="gnav-btn" onclick="showGuestPage('contact',this)"><span class="ni">💬</span><span class="nl">Bog'lanish</span></button>
+  </nav>
+</div>
+
+<!-- === html/admin-app.html === -->
+<!-- ===== ADMIN APP ===== -->
+<div id="admin-app" style="display:none;flex-direction:column;min-height:100vh">
+  <header class="app-header">
+    <div class="brand">
+      <div class="icon" id="admin-logo-icon">📐</div>
+      <span id="admin-site-name">Jaloliddin Math</span>
+    </div>
+    <div class="hright">
+      <button id="admin-install-btn" class="install-btn" onclick="pwaInstallClick()">📲 O'rnatish</button>
+      <span class="badge">👨‍🏫 Admin</span>
+      <button class="btn-out" onclick="logout()">Chiqish</button>
+    </div>
+  </header>
+  <div class="page-content" id="admin-content">
+    <!-- HOME -->
+    <div class="page active" id="ap-home">
+      <div class="ph"><h2>🏠 Bosh sahifa</h2><p id="admin-date-txt">—</p></div>
+      <div id="pwa-banner" class="">
+        <div class="pb-txt">📱 Ilovani o'rnating<span>Telefonga yuklab olish uchun bosing</span></div>
+        <div class="pb-btns">
+          <button class="btn btn-sm btn-primary" onclick="pwaTriggerInstall()">O'rnatish</button>
+          <button class="btn btn-sm btn-ghost" onclick="pwaDismiss()">✕</button>
+        </div>
+      </div>
+      <!-- Quick stats row -->
+      <div class="stat-grid" id="admin-stats"></div>
+      <!-- Guruh dars vaqtlari countdown -->
+      <div id="admin-group-countdowns" style="margin-bottom:10px"></div>
+      <!-- Group selector tabs (horizontal scroll) -->
+      <div id="admin-group-tabs-wrap" style="display:none;margin-bottom:10px">
+        <div id="admin-group-tabs" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none"></div>
+      </div>
+      <!-- Period tabs (Bugun/Hafta/Oy) -->
+      <div id="admin-period-wrap" style="display:none;margin-bottom:10px">
+        <div style="display:flex;gap:5px">
+          <button class="apt on" onclick="setAdminPeriod('today',this)">Bugun</button>
+          <button class="apt" onclick="setAdminPeriod('week',this)">Hafta</button>
+          <button class="apt" onclick="setAdminPeriod('month',this)">Oy</button>
+        </div>
+      </div>
+      <!-- Student cards area -->
+      <div id="admin-stu-cards"></div>
+      <!-- Period ranking -->
+      <div id="admin-period-rank-wrap" style="display:none">
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title" id="admin-rank-title">📊 Kunlik reyting</div>
+          <div id="admin-period-rank"></div>
+        </div>
+      </div>
+      <!-- Top all-time -->
+      <div class="card"><div class="card-title">🏆 Top o'quvchilar (barcha vaqt)</div><div id="top-students"></div></div>
+    </div>
+    <!-- GROUPS/STUDENTS -->
+    <div class="page" id="ap-groups">
+      <div class="ph"><h2>👥 Guruhlar</h2><p>O'quvchilarni boshqarish</p></div>
+      <button class="btn btn-primary btn-full" onclick="openAddGroup()" style="margin-bottom:14px">➕ Yangi guruh qo'shish</button>
+      <div id="groups-list"></div>
+    </div>
+    <!-- GRADING -->
+    <div class="page" id="ap-grades">
+      <div class="ph"><h2>✏️ Baholash</h2><p>Kunlik ballar</p></div>
+      <div class="card">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <select class="inp" id="grade-group" onchange="buildGradeForm()" style="flex:1"></select>
+          <input type="date" class="inp" id="grade-date" onchange="buildGradeForm()" style="flex:1">
+        </div>
+        <div class="hint-box" id="grade-hint-box">⚡ UV: 0–50 · MT: 0–25 · Qatnashish toggle</div>
+        <div style="display:grid;grid-template-columns:1fr 54px 48px 54px 42px 40px;gap:5px;padding:0 10px;margin-bottom:5px">
+          <span style="font-size:.65rem;font-weight:700;color:var(--text3)">O'QUVCHI</span>
+          <span style="font-size:.65rem;font-weight:700;color:#3B82F6;text-align:center">UV</span>
+          <span style="font-size:.65rem;font-weight:700;color:#8B5CF6;text-align:center">MT</span>
+          <span style="font-size:.65rem;font-weight:700;color:#F59E0B;text-align:center">FAOLLIK</span>
+          <span style="font-size:.65rem;font-weight:700;color:#10B981;text-align:center">DAVOMAT</span>
+          <span style="font-size:.65rem;font-weight:700;color:var(--text3);text-align:right">BALL</span>
+        </div>
+        <div id="grade-form"></div>
+        <button class="btn btn-primary btn-full" onclick="saveGrades()">💾 Saqlash</button>
+      </div>
+      <div class="card" id="grade-history-card" style="display:none">
+        <div class="card-title">📅 Tarix (bekor qilish / tiklash)</div>
+        <div id="grade-history"></div>
+      </div>
+    </div>
+    <!-- PAYMENTS -->
+    <div class="page" id="ap-payments">
+      <div class="ph"><h2>💳 To'lovlar</h2><p>O'quvchilar to'lov holati</p></div>
+      <select class="inp" id="pay-group" onchange="renderPayments()" style="margin-bottom:12px;width:100%"></select>
+      <div id="payments-list"></div>
+    </div>
+    <!-- VIDEOS -->
+    <div class="page" id="ap-videos">
+      <div class="ph"><h2>🎬 Videolar</h2><p>Dars va ma'lumot videolari</p></div>
+      <div class="card">
+        <div class="card-title">Yangi video qo'shish</div>
+        <div class="form-group"><label>Video nomi</label><input class="inp" id="vid-title" placeholder="Masalan: 3-dars: ko'paytirish"></div>
+        <div class="form-group"><label>YouTube URL</label><input class="inp" id="vid-url" placeholder="https://youtu.be/..."></div>
+        <button class="btn btn-primary btn-full" onclick="addVideo()">➕ Qo'shish</button>
+      </div>
+      <div id="videos-list"></div>
+    </div>
+    <!-- APPS / DASTURLAR -->
+    <div class="page" id="ap-apps">
+      <div class="ph"><h2>📱 Dasturlar</h2><p>Ilovalar va foydali dasturlar</p></div>
+      <div class="card">
+        <div class="card-title">Yangi dastur qo'shish</div>
+        <div class="form-group">
+          <label>Nomi</label>
+          <input class="inp" id="app-name" placeholder="Masalan: Mafia o'yini">
+        </div>
+        <div class="form-group">
+          <label>Icon (emoji)</label>
+          <input class="inp" id="app-icon" placeholder="🎭" style="font-size:1.4rem;letter-spacing:4px">
+        </div>
+        <div class="form-group">
+          <label>Havola (URL)</label>
+          <input class="inp" id="app-url" placeholder="https://... yoki ./apps/kasrlar/index.html">
+          <div style="font-size:.7rem;color:var(--text3);margin-top:4px">💡 Mahalliy ilova: <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">./apps/ilova-nomi/index.html</code></div>
+        </div>
+        <div class="form-group">
+          <label>Tavsif (ixtiyoriy)</label>
+          <input class="inp" id="app-desc" placeholder="Qisqacha tavsif">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label>Ochilish usuli</label>
+          <div style="display:flex;gap:14px;margin-top:6px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+              <input type="radio" name="app-open-type" value="iframe" id="aot-iframe" checked>
+              📱 Ichida ochilsin
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.85rem">
+              <input type="radio" name="app-open-type" value="tab" id="aot-tab">
+              🔗 Yangi tab
+            </label>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="addApp()">➕ Qo'shish</button>
+      </div>
+      <div id="admin-apps-list"></div>
+    </div>
+    <!-- NOTIFICATIONS -->
+    <div class="page" id="ap-notifs">
+      <div class="ph"><h2>📣 Xabar va Postlar</h2><p>Ota-ona va mehmonga ko'rinadigan xabarlar</p></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">✏️ Yangi post / xabar</div>
+        <div class="form-group">
+          <label>Sarlavha (ixtiyoriy)</label>
+          <input class="inp" id="post-title" placeholder="Masalan: Ertaga sinov bor!">
+        </div>
+        <div class="form-group">
+          <label>Matn</label>
+          <textarea class="inp" id="post-text" rows="4" placeholder="Xabar matni..." style="resize:vertical"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Rasm URL (ixtiyoriy)</label>
+          <input class="inp" id="post-img" placeholder="https://... rasm manzili">
+        </div>
+        <div class="form-group">
+          <label>Ikonka</label>
+          <select class="inp" id="post-icon">
+            <option value="📢">📢 E'lon</option>
+            <option value="⚠️">⚠️ Ogohlantirish</option>
+            <option value="✅">✅ Muhim xabar</option>
+            <option value="📅">📅 Jadval</option>
+            <option value="🎉">🎉 Tabrik</option>
+            <option value="📝">📝 Vazifa</option>
+            <option value="🏆">🏆 Natija</option>
+            <option value="💡">💡 Maslahat</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Kim ko'radi?</label>
+          <div class="aud-toggle">
+            <button type="button" class="aud-btn on" id="aud-parent" onclick="toggleAud('parent')">👨‍👩‍👧 Ota-ona</button>
+            <button type="button" class="aud-btn on" id="aud-guest" onclick="toggleAud('guest')">👥 Mehmon</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-full" style="margin-top:4px" onclick="addPost()">📤 Yuborish</button>
+      </div>
+      <div id="notifs-admin-list"></div>
+    </div>
+    <!-- SETTINGS -->
+    <div class="page" id="ap-letters">
+      <div class="ph"><h2>✉️ Maktublar</h2><p>Kursga qo'shilish so'rovlari</p></div>
+      <div id="letters-list"></div>
+    </div>
+
+    <div class="page" id="ap-settings">
+      <div class="ph"><h2>⚙️ Sozlamalar</h2></div>
+      <div class="card">
+        <div class="card-title">🎯 Baholash nizomi (ball chegarasi)</div>
+        <div class="hint-box">UV + MT + Faollik bali qo'shiladi. Davomat faqat statistika.</div>
+        <div class="setting-row">
+          <div class="sr-info">
+            <div class="sr-title">Uy vazifasi (UV)</div>
+            <div class="sr-desc" id="set-uv-desc">Hozir: 50 ball</div>
+          </div>
+          <div class="sr-right">
+            <input type="number" class="sr-inp" id="set-uv-max" min="1" max="200" placeholder="50" style="width:70px">
+            <button class="btn btn-sm btn-success" onclick="saveScoringLimits()">✓</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info">
+            <div class="sr-title">Mini test (MT)</div>
+            <div class="sr-desc" id="set-mt-desc">Hozir: 25 ball</div>
+          </div>
+          <div class="sr-right">
+            <input type="number" class="sr-inp" id="set-mt-max" min="1" max="200" placeholder="25" style="width:70px">
+            <button class="btn btn-sm btn-success" onclick="saveScoringLimits()">✓</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info">
+            <div class="sr-title">Faollik (FL)</div>
+            <div class="sr-desc" id="set-faol-desc">Hozir: 25 ball · Jami: 100</div>
+          </div>
+          <div class="sr-right">
+            <input type="number" class="sr-inp" id="set-faol-max" min="1" max="200" placeholder="25" style="width:70px">
+            <button class="btn btn-sm btn-success" onclick="saveScoringLimits()">✓</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">Kirish sarlavhasi</div><div class="sr-desc">Login ekranidagi nom</div></div>
+          <div class="sr-right"><input class="sr-inp" id="set-login-title" placeholder="Jaloliddin Math"><button class="btn btn-sm btn-success" onclick="saveLoginTitle()">✓</button></div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">Ilova versiyasi</div><div class="sr-desc">Kirish ekranida ko'rinadi</div></div>
+          <div class="sr-right"><input class="sr-inp" id="set-version" placeholder="v1.4"><button class="btn btn-sm btn-success" onclick="saveVersion()">✓</button></div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">Sayt nomi</div><div class="sr-desc">Sarlavhada ko'rinadigan nom</div></div>
+          <div class="sr-right"><input class="sr-inp" id="set-name" placeholder="Sayt nomi"><button class="btn btn-sm btn-success" onclick="saveSettingName()">✓</button></div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">🖼️ Fon rasmi URL</div><div class="sr-desc">Rasm URL — butun sayt foniga qo'yiladi</div></div>
+          <div class="sr-right" style="flex-direction:column;align-items:flex-end;gap:4px">
+            <input class="sr-inp" id="set-bg-url" placeholder="https://i.postimg.cc/...">
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-success" onclick="saveBgUrl()">✓ Saqlash</button>
+              <button class="btn btn-sm btn-ghost" onclick="clearBgUrl()">✕ O'chirish</button>
+            </div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info">
+            <div class="sr-title">🖼️ Fon ko'rinishi</div>
+            <div class="sr-desc">Fon rasmi yoqilsa to'liq ko'rinadi, animatsiya bilan 40% shaffof overlay</div>
+          </div>
+          <div class="sr-right">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="set-bg-enabled" onchange="saveBgEnabled()" style="width:20px;height:20px;accent-color:#3B82F6">
+              <span style="font-size:.85rem;color:var(--text2)" id="bg-enabled-label">O'chiq</span>
+            </label>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info">
+            <div class="sr-title">🎬 Animatsiya</div>
+            <div class="sr-desc">Neon to'lqinlar va shahar silueti — fon bilan 40% uyg'un</div>
+          </div>
+          <div class="sr-right" style="flex-direction:column;align-items:flex-end;gap:6px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="set-bg-anim" onchange="saveBgAnim()" style="width:20px;height:20px;accent-color:#8B5CF6">
+              <span style="font-size:.85rem;color:var(--text2)" id="anim-label">O'chiq</span>
+            </label>
+            <div id="anim-style-wrap" style="display:none;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              <button class="anim-style-btn" data-style="1" onclick="saveAnimStyle(1)">🌊 To'lqin</button>
+              <button class="anim-style-btn" data-style="2" onclick="saveAnimStyle(2)">✨ Zarrachalar</button>
+              <button class="anim-style-btn" data-style="3" onclick="saveAnimStyle(3)">🌆 Shahar</button>
+              <button class="anim-style-btn" data-style="4" onclick="saveAnimStyle(4)">🔮 Matrix</button>
+            </div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">🖼️ Logo rasmi URL</div><div class="sr-desc">Ilovaning icon o'rniga ko'rsatiladigan rasm</div></div>
+          <div class="sr-right" style="flex-direction:column;align-items:flex-end;gap:4px">
+            <input class="sr-inp" id="set-logo-url" placeholder="https://i.postimg.cc/...">
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-success" onclick="saveLogoUrl()">✓ Saqlash</button>
+              <button class="btn btn-sm btn-ghost" onclick="clearLogoUrl()">✕ O'chirish</button>
+            </div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">Admin paroli</div><div class="sr-desc">Kirish paroli</div></div>
+          <div class="sr-right"><input type="password" class="sr-inp" id="set-pass" placeholder="Yangi parol"><button class="btn btn-sm btn-success" onclick="saveSettingPass()">✓</button></div>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">Dars vaqti — Guruh bo'yicha</div><div class="sr-desc">Har guruh uchun alohida sozlang</div></div>
+        </div>
+        <div id="group-schedule-settings" style="margin-bottom:8px"></div>
+        <div class="setting-row" style="opacity:.5;pointer-events:none;display:none">
+          <div class="sr-info"><div class="sr-title">Dars vaqti (umumiy — eskirgan)</div></div>
+          <div class="sr-right"><input class="sr-inp" id="set-schedule" placeholder="Du,Cho,Ju 14:00"></div>
+        </div>
+        <input type="hidden" id="set-nextdt">
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">Barcha ma'lumot</div><div class="sr-desc">O'chirish (qaytarib bo'lmaydi!)</div></div>
+          <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ O'chirish</button>
+        </div>
+        <div class="setting-row">
+          <div class="sr-info"><div class="sr-title">Sayt versiyasini yangilash</div><div class="sr-desc">Barcha foydalanuvchilarga yangi dizayn ko'rsatiladi</div></div>
+          <button class="btn btn-sm btn-purple" onclick="forceCacheClear()">🔄 Yangilash</button>
+        </div>
+      </div>
+    </div>
+    <!-- EDIT PAGE -->
+    <div class="page" id="ap-edit">
+      <div class="ph"><h2>✏️ Edit</h2><p>Barcha yozuv, rang va hajmlarni o'zgartiring</p></div>
+
+      <!-- Tab switcher -->
+      <div class="edit-tabs">
+        <button class="edit-tab active" id="etab-admin"   onclick="switchEditTab('admin',this)">🔑 Admin</button>
+        <button class="edit-tab"        id="etab-parent"  onclick="switchEditTab('parent',this)">👨‍👩‍👧 Ota-ona</button>
+        <button class="edit-tab"        id="etab-guest"   onclick="switchEditTab('guest',this)">👥 Mehmon</button>
+      </div>
+
+      <!-- ─── ADMIN EDIT ─── -->
+      <div id="ep-admin" class="edit-panel active">
+        <div class="edit-section-title">🏠 Bosh sahifa</div>
+        <div class="edit-preview-card">
+          <div class="ep-row"><span class="ep-label">Sayt nomi</span><span class="ep-val editable" data-key="siteName" data-type="text">Jaloliddin Math</span></div>
+          <div class="ep-row"><span class="ep-label">Login sarlavha</span><span class="ep-val editable" data-key="loginTitle" data-type="text">Jaloliddin Math</span></div>
+          <div class="ep-row"><span class="ep-label">Ilova versiyasi</span><span class="ep-val editable" data-key="appVersion" data-type="text">v1.4</span></div>
+          <div class="ep-row"><span class="ep-label">Dars vaqti</span><span class="ep-val editable" data-key="schedule" data-type="text">Du,Cho,Ju 14:00</span></div>
+        </div>
+
+        <div class="edit-section-title">📊 Baholash bo'limlari</div>
+        <div class="edit-preview-card">
+          <div class="ep-row"><span class="ep-label">1-bo'lim nomi</span><span class="ep-val editable" data-key="lbl_uv" data-type="text">Vazifa</span></div>
+          <div class="ep-row"><span class="ep-label">2-bo'lim nomi</span><span class="ep-val editable" data-key="lbl_mt" data-type="text">Test</span></div>
+          <div class="ep-row"><span class="ep-label">3-bo'lim nomi</span><span class="ep-val editable" data-key="lbl_att" data-type="text">Faollik</span></div>
+          <div class="ep-row"><span class="ep-label">Umumiy foiz yozuvi</span><span class="ep-val editable" data-key="lbl_total" data-type="text">Umumiy</span></div>
+          <div class="ep-row"><span class="ep-label">Shrift hajmi</span>
+            <div class="ep-right" style="gap:4px">
+              <button class="ep-fsz" data-size="sm" onclick="epSetFsz('sm',this)">Kichik</button>
+              <button class="ep-fsz active" data-size="md" onclick="epSetFsz('md',this)">O'rta</button>
+              <button class="ep-fsz" data-size="lg" onclick="epSetFsz('lg',this)">Katta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── OTA-ONA EDIT ─── -->
+      <div id="ep-parent" class="edit-panel">
+        <div class="edit-section-title">🏠 Bosh sahifa</div>
+        <div class="edit-preview-card">
+          <div style="background:linear-gradient(135deg,#3B82F6,#8B5CF6);border-radius:10px;padding:12px 14px;margin-bottom:8px">
+            <div class="ep-row" style="border:none;padding:3px 0">
+              <span style="font-size:.7rem;color:rgba(255,255,255,.6)">Salom matni</span>
+              <span class="ep-val editable" data-key="lbl_hello" data-type="text" style="color:#fff;font-weight:700">Xush kelibsiz</span>
+            </div>
+            <div class="ep-row" style="border:none;padding:3px 0">
+              <span style="font-size:.7rem;color:rgba(255,255,255,.6)">Baholash tizimi matni</span>
+              <span class="ep-val editable" data-key="lbl_baholash" data-type="text" style="color:rgba(255,255,255,.8)">Baholash tizimi</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="edit-section-title">📊 Samara bo'limi yozuvlari</div>
+        <div class="edit-preview-card">
+          <div class="ep-row"><span class="ep-label">1-bo'lim nomi</span><span class="ep-val editable" data-key="lbl_uv" data-type="text">Vazifa</span></div>
+          <div class="ep-row"><span class="ep-label">2-bo'lim nomi</span><span class="ep-val editable" data-key="lbl_mt" data-type="text">Test</span></div>
+          <div class="ep-row"><span class="ep-label">3-bo'lim nomi</span><span class="ep-val editable" data-key="lbl_att" data-type="text">Faollik</span></div>
+          <div class="ep-row"><span class="ep-label">Umumiy foiz yozuvi</span><span class="ep-val editable" data-key="lbl_total" data-type="text">Umumiy</span></div>
+        </div>
+
+        <div class="edit-section-title">🧭 Navigatsiya nomlari</div>
+        <div class="edit-preview-card" style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <div class="ep-row"><span class="ep-label">Samara tab</span><span class="ep-val editable" data-key="lbl_nav_samara" data-type="text">Samara</span></div>
+          <div class="ep-row"><span class="ep-label">Reyting tab</span><span class="ep-val editable" data-key="lbl_nav_rank" data-type="text">Reyting</span></div>
+          <div class="ep-row"><span class="ep-label">Dasturlar tab</span><span class="ep-val editable" data-key="lbl_nav_apps" data-type="text">Dasturlar</span></div>
+          <div class="ep-row"><span class="ep-label">Profil tab</span><span class="ep-val editable" data-key="lbl_nav_profile" data-type="text">Profil</span></div>
+        </div>
+
+        <div class="edit-section-title">👤 Profil sahifasi</div>
+        <div class="edit-preview-card">
+          <div class="ep-row"><span class="ep-label">Telefon label</span><span class="ep-val editable" data-key="lbl_phone" data-type="text">Telefon</span></div>
+          <div class="ep-row"><span class="ep-label">Telegram label</span><span class="ep-val editable" data-key="lbl_telegram" data-type="text">Telegram</span></div>
+          <div class="ep-row"><span class="ep-label">Versiya label</span><span class="ep-val editable" data-key="lbl_version_lbl" data-type="text">Versiya</span></div>
+          <div class="ep-row"><span class="ep-label">To'lov holati label</span><span class="ep-val editable" data-key="lbl_payment_title" data-type="text">To'lov holati</span></div>
+          <div class="ep-row"><span class="ep-label">To'langan matni</span><span class="ep-val editable" data-key="lbl_paid" data-type="text">✅ To'langan</span></div>
+          <div class="ep-row"><span class="ep-label">To'lanmagan matni</span><span class="ep-val editable" data-key="lbl_unpaid" data-type="text">❌ To'lanmagan</span></div>
+          <div class="ep-row"><span class="ep-label">Bog'lanish sarlavha</span><span class="ep-val editable" data-key="lbl_contact_title" data-type="text">Bog'lanish</span></div>
+          <div class="ep-row"><span class="ep-label">Parol o'zgartirish</span><span class="ep-val editable" data-key="lbl_change_pass" data-type="text">Parolni o'zgartirish</span></div>
+        </div>
+      </div>
+
+      <!-- ─── MEHMON EDIT ─── -->
+      <div id="ep-guest" class="edit-panel">
+        <div class="edit-section-title">🏠 Bosh sahifa</div>
+        <div class="edit-preview-card">
+          <div class="ep-row"><span class="ep-label">Sahifa sarlavhasi</span><span class="ep-val editable" data-key="lbl_guest_hero_title" data-type="text">🎯 O'quvchilar Reytingi</span></div>
+          <div class="ep-row"><span class="ep-label">Tavsif matni</span><span class="ep-val editable" data-key="lbl_subtitle" data-type="text">Professional matematika o'qituvchisi</span></div>
+          <div class="ep-row"><span class="ep-label">Platform tagmatni</span><span class="ep-val editable" data-key="lbl_platform" data-type="text">O'quvchilar platformasi</span></div>
+          <div class="ep-row"><span class="ep-label">Salomlashuv</span><span class="ep-val editable" data-key="lbl_hello" data-type="text">Xush kelibsiz</span></div>
+        </div>
+
+        <div class="edit-section-title">🧭 Navigatsiya nomlari</div>
+        <div class="edit-preview-card" style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          <div class="ep-row"><span class="ep-label">Bosh</span><span class="ep-val editable" data-key="lbl_gnav_home" data-type="text">Bosh</span></div>
+          <div class="ep-row"><span class="ep-label">Ilovalar</span><span class="ep-val editable" data-key="lbl_gnav_apps" data-type="text">Ilovalar</span></div>
+          <div class="ep-row"><span class="ep-label">Reyting</span><span class="ep-val editable" data-key="lbl_gnav_rank" data-type="text">Reyting</span></div>
+          <div class="ep-row"><span class="ep-label">Bog'lanish</span><span class="ep-val editable" data-key="lbl_gnav_contact" data-type="text">Bog'lanish</span></div>
+        </div>
+
+        <div class="edit-section-title">📞 Bog'lanish sahifasi</div>
+        <div class="edit-preview-card">
+          <div class="ep-row"><span class="ep-label">Telefon raqam</span><span class="ep-val editable" data-key="contact_phone" data-type="text">+998 97 373 96 05</span></div>
+          <div class="ep-row"><span class="ep-label">Telefon href</span><span class="ep-val editable" data-key="contact_phone_href" data-type="text">+998973739605</span></div>
+          <div class="ep-row"><span class="ep-label">Telegram username</span><span class="ep-val editable" data-key="contact_tg" data-type="text">@Jaloliddin_Sirojiddinov</span></div>
+        </div>
+      </div>
+
+      <!-- Inline edit popover -->
+      <div id="ep-popover" style="display:none;position:fixed;z-index:9999;background:var(--bg2);border:1.5px solid var(--blue);border-radius:12px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:220px;max-width:280px">
+        <div style="font-size:.7rem;color:var(--text2);margin-bottom:6px" id="ep-pop-label">Qiymatni kiriting</div>
+        <input id="ep-pop-input" class="inp" style="margin-bottom:8px;font-size:.88rem">
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-success btn-sm" style="flex:1" onclick="epSavePopover()">✓ Saqlash</button>
+          <button class="btn btn-ghost btn-sm" onclick="epClosePopover()">✕</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showAdminPage('home',this)"><span class="ni">🏠</span><span class="nl">Bosh</span></button>
+    <button class="nav-btn" onclick="showAdminPage('groups',this)"><span class="ni">👥</span><span class="nl">Guruhlar</span></button>
+    <button class="nav-btn" onclick="showAdminPage('grades',this)"><span class="ni">✏️</span><span class="nl">Baholash</span></button>
+    <button class="nav-btn" onclick="showAdminPage('payments',this)"><span class="ni">💳</span><span class="nl">To'lov</span></button>
+    <button class="nav-btn" onclick="showAdminPage('videos',this)"><span class="ni">🎬</span><span class="nl">Video</span></button>
+    <button class="nav-btn" onclick="showAdminPage('apps',this)"><span class="ni">📱</span><span class="nl">Dasturlar</span></button>
+    <button class="nav-btn" style="position:relative" onclick="showAdminPage('notifs',this)"><span class="ni">🔔</span><span class="nl">Xabar</span></button>
+    <button class="nav-btn" style="position:relative" onclick="showAdminPage('letters',this)" id="admin-letters-btn"><span class="ni">✉️</span><span class="nl">Maktub</span><span id="letters-badge" style="display:none;position:absolute;top:4px;right:8px;background:#EF4444;color:#fff;font-size:.58rem;font-weight:800;min-width:17px;height:17px;border-radius:99px;line-height:17px;text-align:center;padding:0 4px;border:2px solid var(--bg2)">0</span></button>
+    <button class="nav-btn" onclick="showAdminPage('edit',this)"><span class="ni">✏️</span><span class="nl">Edit</span></button>
+    <button class="nav-btn" onclick="showAdminPage('settings',this)"><span class="ni">⚙️</span><span class="nl">Sozlama</span></button>
+  </nav>
+</div>
+
+<!-- === html/parent-app.html === -->
+<!-- ===== PARENT APP ===== -->
+<div id="parent-app" style="display:none;flex-direction:column;min-height:100vh">
+  <header class="app-header">
+    <div class="brand">
+      <div class="icon" id="parent-logo-icon">📐</div>
+    </div>
+    <div class="hright">
+      <button id="parent-install-hdr-btn" class="install-btn" onclick="pwaInstallClick()">📲</button>
+      <span class="badge" id="parent-badge">👨‍👩‍👧</span>
+      <button class="btn-out" onclick="logout()">Chiqish</button>
+    </div>
+  </header>
+  <div class="page-content" id="parent-content">
+    <!-- PARENT HOME -->
+    <div class="page active" id="pp-home">
+      <div id="parent-install-bar">
+        <div class="pib-txt">📱 Ilovani o'rnating<span>Tezroq kirish uchun</span></div>
+        <button class="btn btn-sm btn-primary" onclick="pwaTriggerInstall()">O'rnatish</button>
+        <button class="btn btn-sm btn-ghost" onclick="pwaDismissBar()">✕</button>
+      </div>
+      <div id="parent-hello-box"></div>
+      <div id="notifs-parent-box"></div>
+      <div id="stories-box"></div>
+      <div class="card" style="text-align:center;margin-bottom:12px">
+        <div class="card-title" style="justify-content:center">📊 Umumiy natija</div>
+        <div id="circ-progress-wrap"></div>
+      </div>
+      <div class="stat-grid" id="parent-home-stats"></div>
+      <div class="card"><div class="card-title">📅 So'nggi natijalar</div><div id="parent-recent"></div></div>
+    </div>
+    <!-- SAMARA -->
+    <div class="page" id="pp-samara">
+      <div class="ph"><h2>📊 Samara</h2><p>O'quvchi natijalari</p></div>
+      <div class="tab-row" id="samara-tabs">
+        <button class="tab-btn active" onclick="setSamaraPeriod(7,this)">7 kun</button>
+        <button class="tab-btn" onclick="setSamaraPeriod(30,this)">30 kun</button>
+        <button class="tab-btn" onclick="setSamaraPeriod(0,this)">Barchasi</button>
+      </div>
+      <div id="samara-summary-wrap"></div>
+      <div id="samara-advice-wrap"></div>
+      <div class="card" style="margin-bottom:12px"><div class="chart-wrap"><canvas id="samara-chart"></canvas></div></div>
+      <div id="samara-list"></div>
+    </div>
+    <!-- RANKING -->
+    <div class="page" id="pp-ranking">
+      <div class="ph"><h2>🏆 Reyting</h2><p id="rank-group-name">Guruh reytingi</p></div>
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="loadRanking('today',this)">Bugun</button>
+        <button class="tab-btn" onclick="loadRanking('week',this)">Hafta</button>
+        <button class="tab-btn" onclick="loadRanking('month',this)">Bu oy</button>
+        <button class="tab-btn" onclick="loadRanking('all',this)">Barchasi</button>
+      </div>
+      <div id="ranking-list"></div>
+    </div>
+    <!-- PROFILE -->
+    <div class="page" id="pp-profile">
+      <div class="profile-head">
+        <div class="pname" id="prof-name">—</div>
+        <div class="pgroup" id="prof-group">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title">💳 To'lov holati</div>
+        <div id="prof-payment"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔐 Parolni o'zgartirish</div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600">Hozirgi parol</label>
+          <input type="password" class="inp" id="prof-old-pin" placeholder="Eski parolni kiriting">
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600">Yangi parol</label>
+          <input type="password" class="inp" id="prof-new-pin" placeholder="Yangi parolni kiriting">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600">Yangi parolni tasdiqlang</label>
+          <input type="password" class="inp" id="prof-confirm-pin" placeholder="Qaytadan kiriting">
+        </div>
+        <div id="prof-pass-err" style="display:none;color:var(--red);font-size:.78rem;margin-bottom:8px;font-weight:600"></div>
+        <button class="btn btn-primary btn-full" onclick="saveParentPassword()">🔒 Parolni saqlash</button>
+      </div>
+      <div class="card">
+        <div class="card-title">📞 Bog'lanish</div>
+        <div class="info-row"><span class="ir-label">Telefon</span><a href="tel:+998973739605" class="ir-val">+998 97 373 96 05</a></div>
+        <div class="info-row"><span class="ir-label">Telegram</span><a href="https://t.me/Jaloliddin_Sirojiddinov" target="_blank" class="ir-val">@Jaloliddin_Sirojiddinov</a></div>
+        <div class="info-row"><span class="ir-label">Versiya</span><span class="ir-val" id="txt-prof-version">v1.4</span></div>
+      </div>
+    </div>
+    <!-- APPS -->
+    <div class="page" id="pp-apps">
+      <div class="ph"><h2>📱 Dasturlar</h2><p>Foydali ilovalar va o'yinlar</p></div>
+      <div id="parent-apps-grid" class="parent-apps-grid"></div>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showParentPage('home',this)"><span class="ni">🏠</span><span class="nl">Bosh</span></button>
+    <button class="nav-btn" onclick="showParentPage('samara',this)"><span class="ni">📊</span><span class="nl" id="nav-p-samara">Samara</span></button>
+    <button class="nav-btn" onclick="showParentPage('ranking',this)"><span class="ni">🏆</span><span class="nl" id="nav-p-rank">Reyting</span></button>
+    <button class="nav-btn" onclick="showParentPage('apps',this)"><span class="ni">📱</span><span class="nl" id="nav-p-apps">Dasturlar</span></button>
+    <button class="nav-btn" onclick="showParentPage('profile',this)"><span class="ni">👤</span><span class="nl" id="nav-p-profile">Profil</span></button>
+  </nav>
+</div>
+
+<!-- === html/modals.html === -->
+<!-- ===== MODALS ===== -->
+<!-- Add Group -->
+<div class="modal-overlay" id="m-addgroup">
+  <div class="modal">
+    <div class="modal-head"><h3>➕ Yangi guruh</h3><button class="btn-close" onclick="closeModal('m-addgroup')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Guruh nomi</label><input class="inp" id="mg-name" placeholder="Masalan: 3-A guruh"></div>
+      <div class="alert alert-err" id="mg-err"></div>
+      <button class="btn btn-primary btn-full" onclick="addGroup()">Saqlash</button>
+    </div>
+  </div>
+</div>
+<!-- Edit Group -->
+<div class="modal-overlay" id="m-editgroup">
+  <div class="modal">
+    <div class="modal-head"><h3>✏️ Guruhni tahrirlash</h3><button class="btn-close" onclick="closeModal('m-editgroup')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Guruh nomi</label><input class="inp" id="meg-name"></div>
+      <input type="hidden" id="meg-id">
+      <button class="btn btn-primary btn-full" onclick="updateGroup()" style="margin-bottom:8px">Saqlash</button>
+      <button class="btn btn-danger btn-full" onclick="deleteGroup()">🗑️ Guruhni o'chirish</button>
+    </div>
+  </div>
+</div>
+<!-- Add Student -->
+<div class="modal-overlay" id="m-addstu">
+  <div class="modal">
+    <div class="modal-head"><h3>➕ Yangi o'quvchi</h3><button class="btn-close" onclick="closeModal('m-addstu')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Ism Familiya</label><input class="inp" id="ms-name" placeholder="Masalan: Alisher Karimov"></div>
+      <div class="form-group"><label>PIN kod (4 raqam)</label><input type="number" class="inp" id="ms-pin" placeholder="1234" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"></div>
+      <input type="hidden" id="ms-groupid">
+      <div class="alert alert-err" id="ms-err"></div>
+      <button class="btn btn-primary btn-full" onclick="addStudent()">Saqlash</button>
+    </div>
+  </div>
+</div>
+<!-- Edit Student -->
+<div class="modal-overlay" id="m-editstu">
+  <div class="modal">
+    <div class="modal-head"><h3>✏️ O'quvchini tahrirlash</h3><button class="btn-close" onclick="closeModal('m-editstu')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Ism Familiya</label><input class="inp" id="mes-name"></div>
+      <div class="form-group"><label>PIN kod</label><input type="number" class="inp" id="mes-pin" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"></div>
+      <div id="mes-pin-change-info" style="display:none;margin-bottom:8px"></div>
+      <input type="hidden" id="mes-id">
+      <input type="hidden" id="mes-groupid">
+      <button class="btn btn-primary btn-full" onclick="updateStudent()" style="margin-bottom:8px">Saqlash</button>
+      <button class="btn btn-danger btn-full" onclick="deleteStudent()">🗑️ O'chirilsin</button>
+    </div>
+  </div>
+</div>
+<!-- Payment Edit -->
+<div class="modal-overlay" id="m-payment">
+  <div class="modal">
+    <div class="modal-head"><h3 id="pay-modal-title">To'lov</h3><button class="btn-close" onclick="closeModal('m-payment')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>To'lov miqdori (so'm)</label><input type="number" class="inp" id="pay-amount" placeholder="500000"></div>
+      <div class="form-group"><label>Sana</label><input type="date" class="inp" id="pay-date"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <button class="toggle" id="pay-toggle" onclick="this.classList.toggle('on')"></button>
+        <span style="font-size:.88rem;font-weight:600">To'langan</span>
+      </div>
+      <input type="hidden" id="pay-stu-id">
+      <input type="hidden" id="pay-group-id">
+      <button class="btn btn-primary btn-full" onclick="savePayment()">Saqlash</button>
+    </div>
+  </div>
+</div>
+<!-- Video Watch -->
+<div class="modal-overlay" id="m-video">
+  <div class="modal">
+    <div class="modal-head"><h3 id="vid-modal-title">Video</h3><button class="btn-close" onclick="closeVideoModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="video-container" id="vid-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Student Samara Modal -->
+<div class="modal-overlay" id="m-stu-samara">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <div>
+        <h3 id="stu-samara-title">📊 Samara</h3>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px" id="stu-samara-sub"></div>
+      </div>
+      <button class="btn-close" onclick="closeModal('m-stu-samara')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:14px">
+      <div class="tab-row" id="admin-samara-tabs" style="margin-bottom:12px">
+        <button class="tab-btn active" onclick="setAdminSamara(7,this)">7 kun</button>
+        <button class="tab-btn" onclick="setAdminSamara(30,this)">30 kun</button>
+        <button class="tab-btn" onclick="setAdminSamara(0,this)">Barchasi</button>
+      </div>
+      <div id="admin-samara-summary"></div>
+      <div id="admin-samara-advice"></div>
+      <div class="card" style="margin-bottom:12px"><div class="chart-wrap"><canvas id="admin-samara-chart"></canvas></div></div>
+      <div id="admin-samara-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+
+<!-- Chart.js -->
+<!-- Firebase compat SDK (defer/module emas - sinxron yuklash kerak) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<!-- firebase-init: Firebase tayyor bo'lgach darhol init -->
+<script src="js/firebase-init.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- Firebase (ES module) -->
+
+<!-- ╔══════════════════════════════════════╗ -->
+<!-- ║  JS fayllar — js/ papkasida         ║ -->
+<!-- ╚══════════════════════════════════════╝ -->
+<script src="js/core.js" defer></script>       <!-- STATE, utils, Firebase, app init -->
+<script src="js/settings.js" defer></script>   <!-- applySettings -->
+<script src="js/auth.js" defer></script>       <!-- login, enterAdmin, enterParent -->
+<script src="js/guest.js" defer></script>      <!-- mehmon ko'rinish -->
+<script src="js/admin.js" defer></script>      <!-- admin: guruh, baho, to'lov, video -->
+<script src="js/apps.js" defer></script>       <!-- dasturlar sahifasi -->
+<script src="js/parent.js" defer></script>     <!-- ota-ona, sozlamalar -->
+<script src="js/posts.js" defer></script>      <!-- e'lonlar, jadval, countdown -->
+<script src="js/letters.js" defer></script>    <!-- maktublar + circular progress -->
+<script src="js/pwa.js" defer></script>        <!-- PWA o'rnatish, SW -->
+<script src="js/samara.js" defer></script>     <!-- samara/reyting analitika -->
+<script src="js/profile.js" defer></script>    <!-- profil, label/rang, tahrirlash -->
+
+</body>
+</html>

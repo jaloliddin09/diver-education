@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sport Taймер</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#0F172A;color:#E2E8F0;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  header{width:100%;background:linear-gradient(135deg,#065F46,#047857);padding:14px 16px;display:flex;align-items:center;gap:10px}
+  header h1{font-size:1rem;font-weight:700;color:#fff}
+  .container{flex:1;padding:20px 16px;width:100%;max-width:400px}
+  .timer-display{text-align:center;margin:24px 0}
+  .time{font-size:4rem;font-weight:900;color:#10B981;font-variant-numeric:tabular-nums;letter-spacing:2px;line-height:1}
+  .lap-label{font-size:.75rem;color:#64748B;margin-top:6px}
+  .btns{display:flex;gap:10px;margin-bottom:20px}
+  .btn{flex:1;padding:14px;border:none;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .15s}
+  .btn-start{background:#10B981;color:#fff}
+  .btn-start:active{background:#059669}
+  .btn-pause{background:#F59E0B;color:#fff}
+  .btn-reset{background:#374151;color:#9CA3AF}
+  .btn-lap{background:#6366F1;color:#fff}
+  .laps{background:#1E293B;border:1px solid #334155;border-radius:12px;padding:12px;max-height:220px;overflow-y:auto}
+  .lap-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1E293B;font-size:.85rem}
+  .lap-item:last-child{border:none}
+  .lap-n{color:#64748B;font-weight:600}
+  .lap-t{color:#E2E8F0;font-weight:700}
+  .lap-d{color:#64748B;font-size:.75rem}
+  .sets{background:#1E293B;border:1px solid #334155;border-radius:12px;padding:14px;margin-bottom:12px}
+  .sets label{font-size:.72rem;color:#64748B;font-weight:600;text-transform:uppercase;display:block;margin-bottom:8px}
+  .sets-row{display:flex;align-items:center;gap:10px}
+  .sets-row input{background:#0F172A;border:1.5px solid #334155;color:#E2E8F0;border-radius:8px;padding:8px;width:60px;text-align:center;font-size:1rem}
+  .sets-row span{color:#94A3B8;font-size:.85rem;flex:1}
+</style>
+</head>
+<body>
+<header>
+  <span style="font-size:1.4rem">⏱️</span>
+  <h1>Sport Taymeri</h1>
+</header>
+<div class="container">
+  <div class="sets">
+    <label>Mashq sozlamalari</label>
+    <div class="sets-row">
+      <input type="number" id="work-sec" value="30" min="5" max="300">
+      <span>soniya ishlash</span>
+    </div>
+    <div class="sets-row" style="margin-top:8px">
+      <input type="number" id="rest-sec" value="10" min="5" max="300">
+      <span>soniya dam olish</span>
+    </div>
+  </div>
+  <div class="timer-display">
+    <div class="time" id="time">00:00.0</div>
+    <div class="lap-label" id="phase-label">Tayyor</div>
+  </div>
+  <div class="btns">
+    <button class="btn btn-start" id="btn-main" onclick="mainBtn()">▶ Start</button>
+    <button class="btn btn-reset" onclick="resetTimer()">↺ Reset</button>
+    <button class="btn btn-lap" onclick="addLap()">⊕ Lap</button>
+  </div>
+  <div class="laps" id="laps" style="display:none"></div>
+</div>
+<script>
+let ms=0,running=false,interval=null,laps=[],lapStart=0;
+function fmt(ms){
+  const m=Math.floor(ms/60000);
+  const s=Math.floor((ms%60000)/1000);
+  const d=Math.floor((ms%1000)/100);
+  return (m<10?'0':'')+m+':'+(s<10?'0':'')+s+'.'+d;
+}
+function tick(){ms+=100;document.getElementById('time').textContent=fmt(ms);}
+function mainBtn(){
+  if(!running){
+    running=true;interval=setInterval(tick,100);
+    document.getElementById('btn-main').className='btn btn-pause';
+    document.getElementById('btn-main').textContent='⏸ Pauza';
+    document.getElementById('phase-label').textContent='Ishlayapti...';
+  } else {
+    running=false;clearInterval(interval);
+    document.getElementById('btn-main').className='btn btn-start';
+    document.getElementById('btn-main').textContent='▶ Davom';
+    document.getElementById('phase-label').textContent='Pauza';
+  }
+}
+function resetTimer(){
+  running=false;clearInterval(interval);ms=0;laps=[];lapStart=0;
+  document.getElementById('time').textContent='00:00.0';
+  document.getElementById('btn-main').className='btn btn-start';
+  document.getElementById('btn-main').textContent='▶ Start';
+  document.getElementById('phase-label').textContent='Tayyor';
+  document.getElementById('laps').style.display='none';
+  document.getElementById('laps').innerHTML='';
+}
+function addLap(){
+  if(!running)return;
+  const n=laps.length+1;
+  const total=ms;const diff=ms-lapStart;lapStart=ms;laps.push({n,total,diff});
+  const el=document.getElementById('laps');
+  el.style.display='block';
+  el.innerHTML=laps.slice().reverse().map(l=>
+    '<div class="lap-item"><span class="lap-n">Lap '+l.n+'</span><span class="lap-t">'+fmt(l.total)+'</span><span class="lap-d">+'+fmt(l.diff)+'</span></div>'
+  ).join('');
+}
+</script>
+</body>
+</html>

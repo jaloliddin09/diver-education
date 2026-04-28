@@ -1,0 +1,103 @@
+<!-- ===== PARENT APP ===== -->
+<div id="parent-app" style="display:none;flex-direction:column;min-height:100vh">
+  <header class="app-header">
+    <div class="brand">
+      <div class="icon">📐</div>
+      <span id="parent-site-name">Jaloliddin Math</span>
+    </div>
+    <div class="hright">
+      <button id="parent-install-hdr-btn" class="install-btn" onclick="pwaInstallClick()">📲</button>
+      <span class="badge" id="parent-badge">👨‍👩‍👧</span>
+      <button class="btn-out" onclick="logout()">Chiqish</button>
+    </div>
+  </header>
+  <div class="page-content" id="parent-content">
+    <!-- PARENT HOME -->
+    <div class="page active" id="pp-home">
+      <div id="parent-install-bar">
+        <div class="pib-txt">📱 Ilovani o'rnating<span>Tezroq kirish uchun</span></div>
+        <button class="btn btn-sm btn-primary" onclick="pwaTriggerInstall()">O'rnatish</button>
+        <button class="btn btn-sm btn-ghost" onclick="pwaDismissBar()">✕</button>
+      </div>
+      <div id="parent-hello-box"></div>
+      <div id="notifs-parent-box"></div>
+      <div id="stories-box"></div>
+      <div class="card" style="text-align:center;margin-bottom:12px">
+        <div class="card-title" style="justify-content:center">📊 Umumiy natija</div>
+        <div id="circ-progress-wrap"></div>
+      </div>
+      <div class="stat-grid" id="parent-home-stats"></div>
+      <div class="card"><div class="card-title">📅 So'nggi natijalar</div><div id="parent-recent"></div></div>
+    </div>
+    <!-- SAMARA -->
+    <div class="page" id="pp-samara">
+      <div class="ph"><h2>📊 Samara</h2><p>O'quvchi natijalari</p></div>
+      <div class="tab-row" id="samara-tabs">
+        <button class="tab-btn active" onclick="setSamaraPeriod(7,this)">7 kun</button>
+        <button class="tab-btn" onclick="setSamaraPeriod(30,this)">30 kun</button>
+        <button class="tab-btn" onclick="setSamaraPeriod(0,this)">Barchasi</button>
+      </div>
+      <div id="samara-summary-wrap"></div>
+      <div id="samara-advice-wrap"></div>
+      <div class="card" style="margin-bottom:12px"><div class="chart-wrap"><canvas id="samara-chart"></canvas></div></div>
+      <div id="samara-list"></div>
+    </div>
+    <!-- RANKING -->
+    <div class="page" id="pp-ranking">
+      <div class="ph"><h2>🏆 Reyting</h2><p id="rank-group-name">Guruh reytingi</p></div>
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="loadRanking('today',this)">Bugun</button>
+        <button class="tab-btn" onclick="loadRanking('week',this)">Hafta</button>
+        <button class="tab-btn" onclick="loadRanking('month',this)">Bu oy</button>
+        <button class="tab-btn" onclick="loadRanking('all',this)">Barchasi</button>
+      </div>
+      <div id="ranking-list"></div>
+    </div>
+    <!-- PROFILE -->
+    <div class="page" id="pp-profile">
+      <div class="profile-head">
+        <div class="pname" id="prof-name">—</div>
+        <div class="pgroup" id="prof-group">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title">💳 To'lov holati</div>
+        <div id="prof-payment"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔐 Parolni o'zgartirish</div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600">Hozirgi parol</label>
+          <input type="password" class="inp" id="prof-old-pin" placeholder="Eski parolni kiriting">
+        </div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600">Yangi parol</label>
+          <input type="password" class="inp" id="prof-new-pin" placeholder="Yangi parolni kiriting">
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label style="font-size:.78rem;color:var(--text2);font-weight:600">Yangi parolni tasdiqlang</label>
+          <input type="password" class="inp" id="prof-confirm-pin" placeholder="Qaytadan kiriting">
+        </div>
+        <div id="prof-pass-err" style="display:none;color:var(--red);font-size:.78rem;margin-bottom:8px;font-weight:600"></div>
+        <button class="btn btn-primary btn-full" onclick="saveParentPassword()">🔒 Parolni saqlash</button>
+      </div>
+      <div class="card">
+        <div class="card-title">📞 Bog'lanish</div>
+        <div class="info-row"><span class="ir-label">Telefon</span><a href="tel:+998973739605" class="ir-val">+998 97 373 96 05</a></div>
+        <div class="info-row"><span class="ir-label">Telegram</span><a href="https://t.me/Jaloliddin_Sirojiddinov" target="_blank" class="ir-val">@Jaloliddin_Sirojiddinov</a></div>
+        <div class="info-row"><span class="ir-label">Versiya</span><span class="ir-val" id="txt-prof-version">v1.4</span></div>
+      </div>
+    </div>
+    <!-- APPS -->
+    <div class="page" id="pp-apps">
+      <div class="ph"><h2>📱 Dasturlar</h2><p>Foydali ilovalar va o'yinlar</p></div>
+      <div id="parent-apps-grid" class="parent-apps-grid"></div>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="showParentPage('home',this)"><span class="ni">🏠</span><span class="nl">Bosh</span></button>
+    <button class="nav-btn" onclick="showParentPage('samara',this)"><span class="ni">📊</span><span class="nl" id="nav-p-samara">Samara</span></button>
+    <button class="nav-btn" onclick="showParentPage('ranking',this)"><span class="ni">🏆</span><span class="nl" id="nav-p-rank">Reyting</span></button>
+    <button class="nav-btn" onclick="showParentPage('apps',this)"><span class="ni">📱</span><span class="nl" id="nav-p-apps">Dasturlar</span></button>
+    <button class="nav-btn" onclick="showParentPage('profile',this)"><span class="ni">👤</span><span class="nl" id="nav-p-profile">Profil</span></button>
+  </nav>
+</div>

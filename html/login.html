@@ -1,0 +1,46 @@
+<!-- ===== LOGIN ===== -->
+<div id="login" style="display:none;align-items:center;justify-content:center">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon" id="login-icon" onclick="iconSecretClick()" style="cursor:default;user-select:none">📐</div>
+      <h1 id="login-title">Jaloliddin Math</h1>
+      <p id="login-version">Baholash tizimi v1.4</p>
+    </div>
+    <div class="login-tabs">
+      <button class="ltab active" id="ltab-parent" onclick="switchTab('parent')">👨‍👩‍👧 Ota-ona</button>
+      <button class="ltab" id="ltab-guest" onclick="switchTab('guest')">👥 Mehmon</button>
+    </div>
+    <div id="parent-login-form">
+      <div class="form-group">
+        <label>O'quvchi parolini kiriting</label>
+        <input type="number" id="pin-inp" placeholder="4 xonali PIN" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+    </div>
+    <div id="guest-login-form" style="display:none">
+      <div style="text-align:center;padding:18px 0 8px">
+        <div style="font-size:2rem;margin-bottom:8px">👥</div>
+        <p style="color:var(--text2);font-size:.85rem;line-height:1.5">Mehmon sifatida kirish uchun<br>quyidagi tugmani bosing</p>
+      </div>
+    </div>
+    <div id="admin-login-form" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <button onclick="closeAdminLogin()" style="background:var(--bg3);border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text2);font-size:.85rem">← Orqaga</button>
+        <span style="color:var(--text2);font-size:.82rem;font-weight:600">Admin kirishi</span>
+      </div>
+      <div class="form-group">
+        <label>Maxfiy kod</label>
+        <input type="password" id="pass-inp" placeholder="Kodni kiriting" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+    </div>
+    <div class="login-err" id="login-err">❌ Noto'g'ri ma'lumot</div>
+    <button class="btn-login" id="login-main-btn" onclick="doLogin()">Kirish →</button>
+    <div id="login-install-banner">
+      <div class="lib-icon">📲</div>
+      <div class="lib-txt">
+        <div class="lib-title">Ilovani o'rnatish tavsiya etiladi</div>
+        <div class="lib-sub">Tezroq kirish • Oflayn ishlaydi • Xotira tejaydi</div>
+      </div>
+      <button class="lib-btn" onclick="_doInstall()">📥 O'rnatish</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,141 @@
+function applySettings() {
+  var s = DATA.settings || {};
+  var n = s.siteName || 'Jaloliddin Math';
+  var loginTitle = s.loginTitle || n;
+  var ver = s.appVersion || 'v1.4';
+
+  document.title = n;
+  ['admin-site-name','parent-site-name','guest-site-name','guest-site-name2'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.textContent=n;
+  });
+  var lt=document.getElementById('login-title');   if(lt) lt.textContent=loginTitle;
+  var lv=document.getElementById('login-version'); if(lv) lv.textContent='Baholash tizimi '+ver;
+  var si=document.getElementById('set-name');      if(si) si.value=n;
+  var ss=document.getElementById('set-schedule');  if(ss) ss.value=s.schedule||'';
+  var sn=document.getElementById('set-nextdt');    if(sn) sn.value=s.nextClassDt||'';
+  renderGroupScheduleSettings();
+  var slt=document.getElementById('set-login-title'); if(slt) slt.value=s.loginTitle||'';
+  var sv=document.getElementById('set-version');      if(sv)  sv.value=s.appVersion||'';
+  var pan=document.getElementById('pwa-app-name');    if(pan) pan.textContent=n;
+
+  var uvMax=s.uvMax||50, mtMax=s.mtMax||25, faolMax=s.faolMax||25;
+  var suv=document.getElementById('set-uv-max');   if(suv) suv.value=uvMax;
+  var smt=document.getElementById('set-mt-max');   if(smt) smt.value=mtMax;
+  var sfa=document.getElementById('set-faol-max'); if(sfa) sfa.value=faolMax;
+  var du=document.getElementById('set-uv-desc');   if(du) du.textContent='Hozir: '+uvMax+' ball';
+  var dm=document.getElementById('set-mt-desc');   if(dm) dm.textContent='Hozir: '+mtMax+' ball';
+  var df=document.getElementById('set-faol-desc'); if(df) df.textContent='Hozir: '+faolMax+' ball \xb7 Jami: '+(uvMax+mtMax+faolMax);
+
+  // ── LOGO ── preload qilib keyin qo'yamiz
+  var logoUrl = s.logoUrl || '';
+  var root = document.documentElement;
+  if(logoUrl){
+    // Preload
+    var logoPreload = new Image();
+    logoPreload.src = logoUrl;
+    root.style.setProperty('--logo-url', 'url('+logoUrl+')');
+    root.style.setProperty('--logo-url-raw', logoUrl);
+  } else {
+    root.style.removeProperty('--logo-url');
+    root.style.removeProperty('--logo-url-raw');
+  }
+  ['login-icon','admin-logo-icon','parent-logo-icon','guest-logo-icon'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    if(logoUrl) el.setAttribute('data-logo','1');
+    else        el.removeAttribute('data-logo');
+  });
+  var slgo=document.getElementById('set-logo-url'); if(slgo) slgo.value=logoUrl;
+
+  // ── FON + ANIMATSIYA ──
+  // bgEnabled: fon rasmini ko'rsatish (100% yoki animatsiya bilan 40%)
+  // bgAnim:    animatsiyani ko'rsatish (100% yoki fon bilan 40% overlay)
+  // Ikkalasi yoniq → 40% overlay (uyg'un)
+  // Faqat fon  → 100% fon, canvas yo'q
+  // Faqat anim → 100% animatsiya (canvas o'zi fon chizadi)
+  // Ikkalasi o'chiq → qoramtir fon
+
+  var bgUrl      = s.bgUrl      || '';
+  var bgEnabled  = (s.bgEnabled === true);
+  var bgAnim     = (s.bgAnim    === true);
+  var animStyle  = s.animStyle  || 1;
+  var bgImg      = document.getElementById('bg-img');
+  var canvas     = document.getElementById('bg-canvas');
+
+  // bg-img — preload qilib keyin qo'yamiz (kesh muammosini hal qiladi)
+  if(bgImg){
+    if(bgUrl && bgEnabled){
+      // Avval preload Image ob'ekti orqali yuklaymiz
+      var preloader = new Image();
+      preloader.onload = function() {
+        bgImg.style.backgroundImage = 'url('+bgUrl+')';
+        bgImg.style.opacity = '1';
+      };
+      preloader.onerror = function() {
+        // URL ishlamasa ham qo'yib yuboramiz
+        bgImg.style.backgroundImage = 'url('+bgUrl+')';
+      };
+      // Agar keshda bo'lsa — darhol ishlaydi
+      if(bgImg.style.backgroundImage === 'url("'+bgUrl+'")' || bgImg.style.backgroundImage === 'url('+bgUrl+')'){
+        // Allaqachon qo'yilgan, hech narsa qilmaymiz
+      } else {
+        bgImg.style.backgroundImage = 'url('+bgUrl+')'; // darhol qo'y
+        preloader.src = bgUrl;
+      }
+    } else {
+      bgImg.style.backgroundImage = '';
+    }
+  }
+
+  // canvas
+  if(canvas){
+    var wasHidden = canvas.style.display === 'none';
+    canvas.style.display = bgAnim ? 'block' : 'none';
+    canvas.dataset.style = animStyle;
+    // Animatsiya uslubi o'zgarganda yoki canvas endi ko'ringanda qayta qurish
+    if(bgAnim && (wasHidden || canvas._lastStyle != animStyle)) {
+      canvas._lastStyle = animStyle;
+      if(window.bgAnimRestart) setTimeout(window.bgAnimRestart, 50);
+    }
+  }
+
+  // Body va ekranlar shaffof
+  document.body.style.background = 'transparent';
+  document.body.style.backgroundColor = 'transparent';
+  ['login','guest-app','admin-app','parent-app'].forEach(function(id){
+    var el=document.getElementById(id); if(!el) return;
+    el.style.background = 'transparent';
+    el.style.backgroundColor = 'transparent';
+  });
+
+  // Agar ikkalasi o'chiq bo'lsa bg-img ga rang
+  if(bgImg && !bgEnabled && !bgAnim){
+    bgImg.style.backgroundImage = '';
+    bgImg.style.backgroundColor = '#0F172A';
+  } else if(bgImg) {
+    bgImg.style.backgroundColor = '#0F172A'; // fallback rang
+  }
+
+  // UI yangilash
+  var bgChk = document.getElementById('set-bg-enabled');
+  if(bgChk) bgChk.checked = bgEnabled;
+  var bgLbl = document.getElementById('bg-enabled-label');
+  if(bgLbl) bgLbl.textContent = bgEnabled ? 'Yoqiq \u2014 fon ko\u02bcrinadi' : 'O\u02bcchiq';
+
+  var animChk = document.getElementById('set-bg-anim');
+  if(animChk) animChk.checked = bgAnim;
+  var animLbl = document.getElementById('anim-label');
+  if(animLbl) animLbl.textContent = bgAnim ? 'Yoqiq' : 'O\u02bcchiq';
+
+  // Animatsiya style wrap ko'rsatish
+  var wrap = document.getElementById('anim-style-wrap');
+  if(wrap) wrap.style.display = bgAnim ? 'flex' : 'none';
+
+  // Active style tugmasi
+  document.querySelectorAll('.anim-style-btn').forEach(function(btn){
+    btn.classList.toggle('active', parseInt(btn.dataset.style) === animStyle);
+  });
+
+  var sbg = document.getElementById('set-bg-url'); if(sbg) sbg.value = bgUrl;
+
+  if(typeof applyLabels==='function') applyLabels();
+}

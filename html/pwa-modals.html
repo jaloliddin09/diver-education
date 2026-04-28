@@ -1,0 +1,31 @@
+<!-- ===== PWA INSTALL MODAL ===== -->
+<div id="pwa-modal">
+  <div class="pwa-modal-card">
+    <div class="pwa-modal-icon">📱</div>
+    <div class="pwa-modal-title" id="pwa-modal-title">Ilovani o'rnating</div>
+    <div class="pwa-modal-desc">O'qituvchi <b id="pwa-app-name">Jaloliddin Math</b> ilovasini o'rnatishingizni tavsiya qiladi.<br>Tezroq kirish uchun qulay!</div>
+    <div class="pwa-modal-btns">
+      <button type="button" class="btn btn-primary" onclick="pwaTriggerInstall()">📲 O'rnatish</button>
+      <button type="button" class="btn btn-ghost" onclick="pwaDismissModal()">Keyinroq</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PWA MANUAL INSTALL MODAL ===== -->
+<div id="pwa-manual-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:9998;padding:20px">
+  <div class="pwa-modal-card" style="max-width:360px">
+    <div class="pwa-modal-icon">📲</div>
+    <div class="pwa-modal-title">Ilovani o'rnating</div>
+    <div class="pwa-modal-desc" style="text-align:left;font-size:.82rem;line-height:1.9" id="pwa-manual-steps">
+      <b>Android (Chrome):</b><br>
+      ⋮ Menyu → <i>Bosh ekranga qo'shish</i><br><br>
+      <b>iPhone (Safari):</b><br>
+      <span style="font-size:1.1em">⎙</span> Ulashish → <i>Bosh ekranga qo'shish</i><br><br>
+      <b>Desktop (Chrome/Edge):</b><br>
+      Manzil satridagi <b>⊕</b> yoki <b>💻</b> belgini bosing
+    </div>
+    <div class="pwa-modal-btns">
+      <button type="button" class="btn btn-ghost" onclick="document.getElementById('pwa-manual-modal').style.display='none'">Yopish</button>
+    </div>
+  </div>
+</div>

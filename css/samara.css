@@ -1,0 +1,45 @@
+
+/* ===== NOTIFICATION ===== */
+.notif-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
+  background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.18);
+  border-radius:var(--rad-sm);margin-bottom:8px}
+.notif-item .ni-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.notif-item .ni-body{flex:1}
+.notif-item .ni-text{font-size:.88rem;font-weight:500;color:var(--text);line-height:1.5}
+.notif-item .ni-date{font-size:.7rem;color:var(--text3);margin-top:3px}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--red);
+  position:absolute;top:3px;right:3px;animation:pulse2 1.5s infinite}
+@keyframes pulse2{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+
+/* ===== SAMARA NEW DESIGN ===== */
+.samara-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:420px){.samara-summary{grid-template-columns:repeat(4,1fr)}}
+.sam-ring-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad);padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+.sam-ring-label{font-size:.68rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;text-align:center}
+.sam-ring-val{font-size:.78rem;font-weight:700;margin-top:2px}
+.sam-ring-box.weak-box{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+.sam-ring-box.weak-box .sam-ring-label{color:var(--red)}
+
+.sam-advice{border-radius:var(--rad-sm);padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;font-size:.83rem;font-weight:600;line-height:1.5}
+.sam-advice.adv-red{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+.sam-advice.adv-yellow{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--yellow)}
+.sam-advice.adv-green{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:var(--green)}
+.sam-advice .adv-icon{font-size:1.3rem;flex-shrink:0}
+
+.sam-day-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-sm);padding:12px 14px;margin-bottom:8px;transition:all .2s}
+.sam-day-card.cancelled{opacity:.4;filter:grayscale(.6)}
+.sam-day-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sam-day-date{font-size:.8rem;font-weight:700;color:var(--text)}
+.sam-day-total{font-size:1.2rem;font-weight:800}
+.sam-day-rings{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.sam-mini-ring{display:flex;flex-direction:column;align-items:center;gap:3px}
+.sam-mini-label{font-size:.63rem;font-weight:600;color:var(--text3);text-align:center}
+.sam-mini-val{font-size:.72rem;font-weight:700}
+.cancelled-badge{font-size:.65rem;background:rgba(239,68,68,.12);color:var(--red);padding:2px 6px;border-radius:4px;font-weight:600}
+/* App iframe modal */
+#app-iframe-modal{position:fixed;inset:0;z-index:9000;background:#000;display:none;flex-direction:column}
+.aim-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#1E1B4B;flex-shrink:0;gap:10px}
+.aim-title{color:#fff;font-weight:700;font-size:.95rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aim-close{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-weight:600;flex-shrink:0}
+.aim-close:hover{background:rgba(255,255,255,.25)}
+#app-iframe{flex:1;border:none;width:100%;height:100%}
