@@ -62,12 +62,17 @@ function _showUpdateBanner(version) {
   document.body.appendChild(bar);
 }
 window._doReload = function() {
-  // localStorage eski ma'lumotlarni tozalaymiz - yangi deploy dan fresh data kelsin
-  try { localStorage.removeItem('jm_data'); } catch(e) {}
+  // localStorage O'CHIRMAYMIZ — Firebase kelguncha bo'sh ko'rinmasin
+  // Faqat SW keshini yangilaymiz va reload qilamiz
+  const bar = document.getElementById('pwa-update-bar');
+  if (bar) bar.remove();
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
     navigator.serviceWorker.controller.postMessage({ type: 'FORCE_UPDATE' });
+    // SW RELOAD xabarini yuborishini kutamiz
+    setTimeout(() => window.location.reload(true), 1000);
+  } else {
+    window.location.reload(true);
   }
-  setTimeout(() => window.location.reload(true), 800);
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -209,21 +214,22 @@ window.pwaDismissBar = function() {
 window._showIosGuide = _showIosGuide;
 
 // ═══════════════════════════════════════════════════════════
-// ADMIN: kesh tozalash (tejamkor — barcha fayllarni yuklamaydi)
+// ADMIN: kesh tozalash — localStorage SAQLANADI
 // ═══════════════════════════════════════════════════════════
 window.forceCacheClear = async function() {
-  if (!confirm('Kesh va mahalliy ma\'lumotlar tozalanadi. Davom etasizmi?')) return;
-  toast('🔄 Tozalanmoqda...');
-  try { localStorage.removeItem('jm_data'); } catch(e) {}
+  if (!confirm('SW keshi tozalanadi va sahifa yangilanadi. Davom etasizmi?')) return;
+  toast('🔄 Yangilanmoqda...');
+  // localStorage O'CHIRMAYMIZ — ma'lumotlar saqlansin
   if ('caches' in window) {
     const keys = await caches.keys();
     await Promise.all(keys.map(k => caches.delete(k)));
   }
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+    navigator.serviceWorker.controller.postMessage({ type: 'FORCE_UPDATE' });
+    setTimeout(() => window.location.reload(true), 1000);
+  } else {
+    setTimeout(() => window.location.reload(true), 500);
   }
-  toast('✅ Tozalandi! Sahifa yangilanmoqda...');
-  setTimeout(() => window.location.reload(true), 1500);
 };
 
 // ═══════════════════════════════════════════════════════════

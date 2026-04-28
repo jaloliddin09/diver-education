@@ -61,28 +61,35 @@ function applySettings() {
   var bgImg      = document.getElementById('bg-img');
   var canvas     = document.getElementById('bg-canvas');
 
-  // bg-img — preload qilib keyin qo'yamiz (kesh muammosini hal qiladi)
+  // bg-img — mobil uchun to'g'ri yuklash
   if(bgImg){
     if(bgUrl && bgEnabled){
-      // Avval preload Image ob'ekti orqali yuklaymiz
-      var preloader = new Image();
-      preloader.onload = function() {
+      // Hozirgi URL bilan bir xil bo'lsa qayta yuklamaymiz
+      var current = bgImg.getAttribute('data-bg-loaded');
+      if(current !== bgUrl){
+        bgImg.setAttribute('data-bg-loaded', bgUrl);
+        // Darhol qo'yamiz (keshdan kelsa tez ko'rinadi)
         bgImg.style.backgroundImage = 'url('+bgUrl+')';
-        bgImg.style.opacity = '1';
-      };
-      preloader.onerror = function() {
-        // URL ishlamasa ham qo'yib yuboramiz
-        bgImg.style.backgroundImage = 'url('+bgUrl+')';
-      };
-      // Agar keshda bo'lsa — darhol ishlaydi
-      if(bgImg.style.backgroundImage === 'url("'+bgUrl+'")' || bgImg.style.backgroundImage === 'url('+bgUrl+')'){
-        // Allaqachon qo'yilgan, hech narsa qilmaymiz
+        bgImg.style.opacity = '0';
+        // Preload
+        var img = new Image();
+        img.onload = function(){
+          bgImg.style.backgroundImage = 'url('+bgUrl+')';
+          bgImg.style.opacity = '1';
+          bgImg.style.transition = 'opacity 0.4s ease';
+        };
+        img.onerror = function(){
+          bgImg.style.backgroundImage = 'url('+bgUrl+')';
+          bgImg.style.opacity = '1';
+        };
+        img.src = bgUrl;
       } else {
-        bgImg.style.backgroundImage = 'url('+bgUrl+')'; // darhol qo'y
-        preloader.src = bgUrl;
+        bgImg.style.opacity = '1';
       }
     } else {
       bgImg.style.backgroundImage = '';
+      bgImg.style.opacity = '1';
+      bgImg.removeAttribute('data-bg-loaded');
     }
   }
 
@@ -136,6 +143,33 @@ function applySettings() {
   });
 
   var sbg = document.getElementById('set-bg-url'); if(sbg) sbg.value = bgUrl;
+
+  // ── ICON URL ── favicon va manifest icon
+  var iconUrl = s.iconUrl || '';
+  if(iconUrl) {
+    // Favicon yangilash
+    var favicon = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="shortcut icon"]');
+    if(!favicon) { favicon = document.createElement('link'); favicon.rel = 'icon'; document.head.appendChild(favicon); }
+    favicon.href = iconUrl;
+    // PWA apple-touch-icon
+    var apple = document.querySelector('link[rel="apple-touch-icon"]');
+    if(!apple) { apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; document.head.appendChild(apple); }
+    apple.href = iconUrl;
+    // Login icon va header iconlarini rasm bilan almashtirish
+    ['login-icon','admin-logo-icon','parent-logo-icon','guest-logo-icon'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.style.backgroundImage = 'url('+iconUrl+')';
+      el.style.backgroundSize = 'cover';
+      el.style.backgroundPosition = 'center';
+      el.textContent = '';
+    });
+    // Preview yangilash
+    var prev = document.getElementById('icon-preview');
+    if(prev) { prev.src = iconUrl; prev.style.display = 'block'; }
+    var iconInp = document.getElementById('set-icon-url');
+    if(iconInp && !iconInp.value) iconInp.value = iconUrl;
+  }
 
   if(typeof applyLabels==='function') applyLabels();
 }

@@ -32,7 +32,53 @@ window.clearBgUrl = async function() {
   fbUpdate('settings', { bgUrl: '', bgEnabled: false }).catch(e => console.warn('fb:', e));
 };
 
-window.saveLogoUrl = async function() {
+// ── ICON UPLOAD ─────────────────────────────────────────────
+window.handleIconUpload = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 512 * 1024) { toast('❌ Rasm 512KB dan kichik bo\'lsin!'); return; }
+  const statusEl = document.getElementById('icon-upload-status');
+  const preview = document.getElementById('icon-preview');
+  if (statusEl) statusEl.textContent = '⏳ Yuklanmoqda...';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result;
+    // Preview
+    if (preview) { preview.src = base64; preview.style.display = 'block'; }
+    // URL input ga ham qo'yamiz
+    const urlInp = document.getElementById('set-icon-url');
+    if (urlInp) urlInp.value = base64;
+    if (statusEl) statusEl.textContent = '✅ Tayyor — "Saqlash" ni bosing';
+  };
+  reader.onerror = function() {
+    if (statusEl) statusEl.textContent = '❌ Xato yuz berdi';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.saveIconUrl = async function() {
+  const url = (document.getElementById('set-icon-url').value || '').trim();
+  if (!url) { toast('❌ Rasm tanlang yoki URL kiriting!'); return; }
+  DATA.settings.iconUrl = url;
+  saveLocal();
+  applySettings();
+  toast('✅ Ikonka saqlandi!');
+  fbUpdate('settings', { iconUrl: url }).catch(e => console.warn('fb:', e));
+};
+
+window.clearIconUrl = async function() {
+  DATA.settings.iconUrl = '';
+  const urlInp = document.getElementById('set-icon-url');
+  const preview = document.getElementById('icon-preview');
+  const fileInp = document.getElementById('icon-file-input');
+  if (urlInp) urlInp.value = '';
+  if (preview) { preview.src = ''; preview.style.display = 'none'; }
+  if (fileInp) fileInp.value = '';
+  saveLocal();
+  applySettings();
+  toast('✅ Ikonka o\'chirildi');
+  fbUpdate('settings', { iconUrl: '' }).catch(e => console.warn('fb:', e));
+};
   const url = (document.getElementById('set-logo-url').value || '').trim();
   DATA.settings.logoUrl = url;
   saveLocal();

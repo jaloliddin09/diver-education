@@ -3,7 +3,7 @@
 // ║  YANGILASH: CACHE_NAME raqamini o'zgartiring            ║
 // ║  Masalan: 'jm-v3.8' → 'jm-v3.8'                        ║
 // ╚══════════════════════════════════════════════════════════╝
-const CACHE_NAME = 'jm-v202604280900';
+const CACHE_NAME = 'jm-v202604282300';
 
 // Asosiy fayllar — har doim keshda bo'ladi
 const CORE_FILES = [
