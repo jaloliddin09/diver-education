@@ -22,10 +22,17 @@ function renderProfile() {
   // ─── To'lov muddati hisoblash ───────────────────────────────
   let nextDueStr = '';
   let daysLeft = null;
-  if (pay.date) {
-    const lastPaid = new Date(pay.date);
-    const nextDue = new Date(lastPaid);
-    nextDue.setMonth(nextDue.getMonth() + 1);
+  // dueDate mavjud bo'lsa uni ishlatamiz, aks holda pay.date + 1 oy
+  const hasDueDate = !!(pay.dueDate);
+  if (pay.dueDate || pay.date) {
+    let nextDue;
+    if (pay.dueDate) {
+      nextDue = new Date(pay.dueDate);
+    } else {
+      const lastPaid = new Date(pay.date);
+      nextDue = new Date(lastPaid);
+      nextDue.setMonth(nextDue.getMonth() + 1);
+    }
     const todayD = new Date();
     todayD.setHours(0, 0, 0, 0);
     nextDue.setHours(0, 0, 0, 0);

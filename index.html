@@ -304,13 +304,17 @@
     <!-- PAYMENTS -->
     <div class="page" id="ap-payments">
       <div class="ph"><h2>💳 To'lovlar</h2><p>O'quvchilar to'lov holati</p></div>
-      <div style="display:flex;gap:8px;margin-bottom:14px">
-        <button class="btn btn-sm btn-primary pay-tab-btn" onclick="switchPayTab('list',this)">📋 O'quvchilar</button>
-        <button class="btn btn-sm pay-tab-btn" onclick="switchPayTab('hisobkitob',this)">📊 Hisob-kitob</button>
+      <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px">
+        <button class="btn btn-sm btn-primary pay-tab-btn" onclick="switchPayTab('list',this)" style="white-space:nowrap">📋 O'quvchilar</button>
+        <button class="btn btn-sm pay-tab-btn" onclick="switchPayTab('dates',this)" style="white-space:nowrap">📅 To'lov sanasi</button>
+        <button class="btn btn-sm pay-tab-btn" onclick="switchPayTab('hisobkitob',this)" style="white-space:nowrap">📊 Hisob-kitob</button>
       </div>
       <div id="pay-tab-list">
         <select class="inp" id="pay-group" onchange="renderPayments()" style="margin-bottom:12px;width:100%"></select>
         <div id="payments-list"></div>
+      </div>
+      <div id="pay-tab-dates" style="display:none">
+        <div id="pay-dates-content"></div>
       </div>
       <div id="pay-tab-hisobkitob" style="display:none">
         <div id="hisobkitob-content"></div>
