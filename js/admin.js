@@ -1191,6 +1191,41 @@ function _fmtMonth(ym) {
   return _OY[parseInt(m, 10) - 1] + ' ' + y;
 }
 
+/**
+ * To'lov qaysi oyga tegishli ekanligini aniqlash.
+ * Misol: payDate=2026-04-23, dueDate=2026-05-23
+ *   → Aprel: 8 kun, May: 23 kun → May (ko'p)
+ * Agar dueDate yo'q bo'lsa, payDate + 1 oy ishlatiladi.
+ */
+function getPayBillingMonth(payDate, dueDate) {
+  if (!payDate) return null;
+  const start = new Date(payDate + 'T00:00:00');
+  let end;
+  if (dueDate) {
+    end = new Date(dueDate + 'T00:00:00');
+  } else {
+    end = new Date(start);
+    end.setMonth(end.getMonth() + 1);
+  }
+  if (end <= start) return start.toISOString().slice(0, 7);
+
+  // Har bir kun qaysi oyda ekanligini hisoblaymiz
+  const monthCounts = {};
+  const cur = new Date(start);
+  while (cur < end) {
+    const ym = cur.toISOString().slice(0, 7);
+    monthCounts[ym] = (monthCounts[ym] || 0) + 1;
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  // Ko'p kun bo'lgan oy = billing oy
+  let bestYM = null, bestCount = 0;
+  Object.entries(monthCounts).forEach(function(e) {
+    if (e[1] > bestCount) { bestCount = e[1]; bestYM = e[0]; }
+  });
+  return bestYM;
+}
+
 window.switchPayTab = function(tab, btn) {
   document.querySelectorAll('.pay-tab-btn').forEach(b => b.classList.remove('btn-primary'));
   if (btn) btn.classList.add('btn-primary');
@@ -1216,246 +1251,367 @@ function _fmtSomFull(n) {
 window.renderHisobKitob = function() {
   const el = document.getElementById('hisobkitob-content');
   if (!el) return;
-  const groups = DATA.groups || {};
-  const mode   = window._hisobMode || 'month'; // 'month' | 'all'
-  const nowYM  = new Date().toISOString().slice(0, 7);   // e.g. "2026-05"
+  const groups   = DATA.groups || {};
+  const mode     = window._hisobMode || 'month';
+  const nowD     = new Date(); nowD.setHours(0,0,0,0);
+  const nowYM    = nowD.toISOString().slice(0, 7);
   const nowMonthName = _fmtMonth(nowYM);
 
   // ─── Mode toggle ─────────────────────────────────────────
   const modeToggle = `
   <div style="display:flex;gap:6px;margin-bottom:14px;background:var(--bg2);padding:4px;border-radius:12px">
     <button onclick="window._hisobMode='month';renderHisobKitob()"
-      style="flex:1;padding:8px 4px;border:none;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;
-             background:${mode==='month'?'var(--blue)':'transparent'};color:${mode==='month'?'#fff':'var(--text2)'}">
+      style="flex:1;padding:8px 4px;border:none;border-radius:9px;font-size:.8rem;font-weight:700;
+             cursor:pointer;font-family:inherit;
+             background:${mode==='month'?'var(--blue)':'transparent'};
+             color:${mode==='month'?'#fff':'var(--text2)'}">
       📅 Bu oy (${nowMonthName})
     </button>
     <button onclick="window._hisobMode='all';renderHisobKitob()"
-      style="flex:1;padding:8px 4px;border:none;border-radius:9px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;
-             background:${mode==='all'?'var(--blue)':'transparent'};color:${mode==='all'?'#fff':'var(--text2)'}">
-      📊 Umumiy (jami)
+      style="flex:1;padding:8px 4px;border:none;border-radius:9px;font-size:.8rem;font-weight:700;
+             cursor:pointer;font-family:inherit;
+             background:${mode==='all'?'var(--blue)':'transparent'};
+             color:${mode==='all'?'#fff':'var(--text2)'}">
+      📊 Umumiy tarix
     </button>
   </div>`;
 
-  // ─── Har bir guruhni hisoblash ───────────────────────────
-  let grandTotal=0, grandPaid=0, grandCollected=0, grandExpected=0, grandDebt=0;
+  // ═══════════════════════════════════════════════════════
+  // "BU OY" MODE
+  // ═══════════════════════════════════════════════════════
+  if (mode === 'month') {
+    let grandPaid=0, grandUnpaid=0, grandCollected=0, grandExpected=0;
 
-  const groupCards = Object.entries(groups).map(function(entry) {
-    const gid = entry[0], g = entry[1];
-    const coursePrice = getEffectivePrice(g);
-    const allStudents = Object.values(g.students || {});
+    const groupCards = Object.entries(groups).map(function(ge) {
+      const gid = ge[0], g = ge[1];
+      const coursePrice = getEffectivePrice(g);
+      const allStudents = Object.entries(g.students || {});
+      if (!allStudents.length) return '';
 
-    // Mode bo'yicha filtrlash
-    let students;
-    if (mode === 'month') {
-      // Faqat shu oyda to'lov sanasi bo'lgan yoki hali to'lamagan barcha o'quvchilar
-      students = allStudents;
-      // "Bu oy" hisobida: paidCount = shu oyda paid=true bo'lganlar
-      // unpaidCount = paid=false yoki boshqa oy to'laganlar
-    } else {
-      students = allStudents;
-    }
+      // Har bir o'quvchi uchun shu oy uchun to'lagan/to'lamagan aniqlash
+      const paidList   = [];
+      const unpaidList = [];
 
-    const count      = students.length;
-    if (!count) return '';
+      allStudents.forEach(function(se) {
+        const s = se[1];
+        const pay = s.payments || {};
+        // Billing oy — qaysi oy uchun to'lagan?
+        const billingYM = pay.paid && pay.date
+          ? getPayBillingMonth(pay.date, pay.dueDate)
+          : null;
 
-    const paidStudents = students.filter(function(s) {
-      if (!s.payments || !s.payments.paid) return false;
-      if (mode === 'month') return s.payments.date && s.payments.date.slice(0,7) === nowYM;
-      return true; // 'all' modeda barchasi
-    });
-    const paidCount   = paidStudents.length;
-    const unpaidCount = count - paidCount;
-    // Faqat to'langan o'quvchilarning summasi
-    const collected   = paidStudents.reduce(function(acc,s){ return acc+(s.payments.amount||0); }, 0);
-    const expected    = coursePrice * count;
-    const debt        = coursePrice ? Math.max(0, expected - collected) : 0;
-    const pctPaid     = count ? Math.round(paidCount / count * 100) : 0;
-    const barColor    = pctPaid >= 80 ? '#10B981' : pctPaid >= 50 ? '#F59E0B' : '#EF4444';
-
-    grandTotal     += count;
-    grandPaid      += paidCount;
-    grandCollected += collected;
-    grandExpected  += expected;
-    grandDebt      += debt;
-
-    // Keyingi to'lov sanasi (agar payDueDay belgilangan bo'lsa)
-    let dueDateRow = '';
-    if (g.payDueDay) {
-      const now = new Date();
-      let dueDate = new Date(now.getFullYear(), now.getMonth(), g.payDueDay);
-      if (dueDate < now) dueDate = new Date(now.getFullYear(), now.getMonth()+1, g.payDueDay);
-      const daysLeft = Math.ceil((dueDate - now) / 86400000);
-      const dueTxt = dueDate.toLocaleDateString('uz-UZ', {day:'numeric',month:'long'});
-      const dueColor = daysLeft <= 3 ? '#EF4444' : daysLeft <= 7 ? '#F59E0B' : '#10B981';
-      dueDateRow = `<div style="margin-top:6px;display:flex;justify-content:space-between;font-size:.7rem;padding:6px 10px;background:rgba(0,0,0,.1);border-radius:8px">
-        <span style="color:var(--text2)">📅 Keyingi to'lov</span>
-        <span style="font-weight:700;color:${dueColor}">${dueTxt} (${daysLeft} kun)</span>
-      </div>`;
-    }
-
-    const debtRow = coursePrice ? (
-      debt > 0
-        ? `<div style="display:flex;justify-content:space-between;font-size:.7rem;padding:7px 10px;background:rgba(239,68,68,.08);border-radius:8px;border:1px solid rgba(239,68,68,.2)">
-            <span style="color:#EF4444;font-weight:600">❌ Qarzdorlik (${unpaidCount} kishi)</span>
-            <span style="font-weight:800;color:#EF4444">${_fmtSomFull(debt)} so'm</span>
-           </div>`
-        : paidCount === count
-          ? `<div style="font-size:.7rem;padding:7px 10px;background:rgba(16,185,129,.08);border-radius:8px;border:1px solid rgba(16,185,129,.2);color:#10B981;font-weight:700;text-align:center">✅ Barcha ${count} kishi to'lagan!</div>`
-          : ''
-    ) : '';
-
-    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div style="font-weight:700;font-size:.92rem">${g.name}</div>
-          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">${count} ta o'quvchi</div>
-        </div>
-        ${coursePrice ? `<div style="font-size:.72rem;font-weight:700;color:var(--blue);background:rgba(59,130,246,.1);padding:3px 9px;border-radius:8px;flex-shrink:0">${coursePrice.toLocaleString()} so'm</div>` : '<div style="font-size:.68rem;color:#F59E0B;font-weight:600">narx yo\'q</div>'}
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden">
-          <div style="height:100%;width:${pctPaid}%;background:${barColor};border-radius:4px"></div>
-        </div>
-        <span style="font-size:.72rem;font-weight:800;color:${barColor};min-width:34px;text-align:right">${pctPaid}%</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:8px">
-        <div style="text-align:center;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:9px;padding:8px 4px">
-          <div style="font-size:1rem;font-weight:800;color:#10B981">${paidCount}</div>
-          <div style="font-size:.6rem;font-weight:600;color:var(--text2);margin-top:2px">✅ To'lagan</div>
-        </div>
-        <div style="text-align:center;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:8px 4px">
-          <div style="font-size:1rem;font-weight:800;color:#EF4444">${unpaidCount}</div>
-          <div style="font-size:.6rem;font-weight:600;color:var(--text2);margin-top:2px">❌ To'lamagan</div>
-        </div>
-        <div style="text-align:center;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:9px;padding:8px 4px">
-          <div style="font-size:.82rem;font-weight:800;color:var(--blue)">${_fmtSom(collected)}</div>
-          <div style="font-size:.6rem;font-weight:600;color:var(--text2);margin-top:2px">💰 Yig'ilgan</div>
-        </div>
-      </div>
-      ${coursePrice ? `<div style="display:flex;justify-content:space-between;font-size:.7rem;padding:7px 10px;background:var(--bg3);border-radius:8px;margin-bottom:${debtRow?'5px':'0'}">
-        <span style="color:var(--text2)">Kutilgan jami (${count}×${(coursePrice/1000).toFixed(0)}K)</span>
-        <span style="font-weight:700">${_fmtSomFull(expected)} so'm</span>
-      </div>` : ''}
-      ${debtRow}
-      ${dueDateRow}
-    </div>`;
-  }).join('');
-
-  // ─── Grand total ─────────────────────────────────────────
-  const grandPct = grandTotal ? Math.round(grandPaid/grandTotal*100) : 0;
-  const grandBarColor = grandPct>=80?'#10B981':grandPct>=50?'#F59E0B':'#EF4444';
-  const modeLabel = mode === 'month' ? `📅 ${nowMonthName} — joriy oy` : '📊 Barcha vaqt — umumiy';
-
-  const grandCard = `
-  <div style="background:linear-gradient(135deg,rgba(59,130,246,.18),rgba(139,92,246,.12));border:1px solid rgba(59,130,246,.35);border-radius:14px;padding:16px;margin-bottom:14px">
-    <div style="font-weight:800;font-size:.9rem;margin-bottom:4px">${modeLabel}</div>
-    <div style="font-size:.68rem;color:var(--text2);margin-bottom:12px">${grandTotal} ta o'quvchi — barcha guruhlar</div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <div style="flex:1;height:10px;background:rgba(0,0,0,.2);border-radius:5px;overflow:hidden">
-        <div style="height:100%;width:${grandPct}%;background:${grandBarColor};border-radius:5px;transition:width .5s"></div>
-      </div>
-      <span style="font-size:.82rem;font-weight:800;color:${grandBarColor};min-width:38px;text-align:right">${grandPct}%</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px">
-      <div style="background:rgba(16,185,129,.15);border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:1.1rem;font-weight:800;color:#10B981">${grandPaid}<span style="font-size:.7rem;opacity:.7"> / ${grandTotal}</span></div>
-        <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">✅ To'lagan / Jami</div>
-      </div>
-      <div style="background:rgba(59,130,246,.15);border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:.95rem;font-weight:800;color:var(--blue)">${_fmtSomFull(grandCollected)}</div>
-        <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">💰 Yig'ilgan (so'm)</div>
-      </div>
-    </div>
-    ${grandExpected ? `
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
-      <div style="background:rgba(0,0,0,.12);border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:.9rem;font-weight:800;color:var(--text1)">${_fmtSomFull(grandExpected)}</div>
-        <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">📋 Kutilgan jami</div>
-      </div>
-      <div style="background:${grandDebt?'rgba(239,68,68,.15)':'rgba(16,185,129,.12)'};border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:.9rem;font-weight:800;color:${grandDebt?'#EF4444':'#10B981'}">${grandDebt?_fmtSomFull(grandDebt)+' so\'m':'✅ Yo\'q'}</div>
-        <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">${grandDebt?'❌ Umumiy qarzdorlik':'✅ Qarzdorlik'}</div>
-      </div>
-    </div>` : ''}
-  </div>`;
-
-  // ─── Oylik tarix (faqat "Umumiy" modeda) ─────────────────
-  let monthSection = '';
-  if (mode === 'all') {
-    const byMonth = {};
-    Object.entries(groups).forEach(function(ge) {
-      const g2 = ge[1];
-      Object.values(g2.students||{}).forEach(function(st) {
-        const pay = st.payments||{};
-        if (!pay.date) return;
-        const ym = pay.date.slice(0,7);
-        if (!byMonth[ym]) byMonth[ym] = { collected:0, pendingAmt:0, paidCount:0, unpaidCount:0, paidList:[], pendingList:[] };
-        if (pay.paid) {
-          byMonth[ym].collected  += pay.amount||0;
-          byMonth[ym].paidCount  += 1;
-          byMonth[ym].paidList.push({ name:st.name||'—', group:g2.name, amount:pay.amount||0 });
+        if (pay.paid && billingYM === nowYM) {
+          // Bu oy uchun to'lagan ✅
+          paidList.push({ name: s.name, amount: pay.amount || 0, dueDate: pay.dueDate });
         } else {
-          byMonth[ym].unpaidCount += 1;
-          byMonth[ym].pendingList.push({ name:st.name||'—', group:g2.name, amount:pay.amount||0 });
+          // To'lamagan yoki boshqa oy uchun to'lagan
+          // Shu oy uchun to'lashi kerakmi? dueDate shu oyda yoki o'tib ketgan bo'lsa
+          const shouldPayThisMonth = !pay.dueDate
+            || pay.dueDate.slice(0,7) <= nowYM; // muddat shu oy yoki o'tgan
+          if (shouldPayThisMonth) {
+            unpaidList.push({ name: s.name, amount: coursePrice || pay.amount || 0, dueDate: pay.dueDate });
+          }
         }
       });
-    });
-    window._payMonthData = byMonth;
-    const monthEntries = Object.entries(byMonth).sort(function(a,b){ return b[0].localeCompare(a[0]); });
-    const monthCards = monthEntries.map(function(me) {
-      const ym2=me[0], d=me[1];
-      const tot = d.paidCount+d.unpaidCount;
-      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-weight:800;font-size:.9rem">${_fmtMonth(ym2)}</div>
-          <div style="font-size:.7rem;color:var(--text2)">${tot} ta yozuv</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div onclick="showPayMonth('${ym2}','paid')"
-            style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:9px;padding:9px;text-align:center;cursor:pointer">
-            <div style="font-size:.88rem;font-weight:800;color:#10B981">${_fmtSomFull(d.collected)} so'm</div>
-            <div style="font-size:.6rem;color:var(--text2);margin-top:3px">✅ To'langan · ${d.paidCount} kishi → ko'rish</div>
-          </div>
-          <div onclick="showPayMonth('${ym2}','pending')"
-            style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:9px;text-align:center;cursor:pointer">
-            <div style="font-size:.88rem;font-weight:800;color:#EF4444">${d.unpaidCount} ta</div>
-            <div style="font-size:.6rem;color:var(--text2);margin-top:3px">❌ To'lamagan → ko'rish</div>
-          </div>
-        </div>
-      </div>`;
-    }).join('') || `<div class="empty"><div class="ei">📅</div><p>Ma'lumot yo'q</p></div>`;
 
-    monthSection = `<div style="font-size:.7rem;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 8px">🗓 Oylar bo'yicha tarix</div>${monthCards}`;
+      const count    = paidList.length + unpaidList.length;
+      if (!count) return '';
+
+      const collected = paidList.reduce(function(a,s){ return a+(s.amount||0); }, 0);
+      const expected  = coursePrice ? coursePrice * count : 0;
+      const debt      = Math.max(0, expected - collected);
+      const pct       = count ? Math.round(paidList.length / count * 100) : 0;
+      const bColor    = pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444';
+
+      grandPaid      += paidList.length;
+      grandUnpaid    += unpaidList.length;
+      grandCollected += collected;
+      grandExpected  += expected;
+
+      // To'lamaganlar ro'yxati (ochish/yopish)
+      const unpaidRows = unpaidList.map(function(s) {
+        const nowTmp = new Date(); nowTmp.setHours(0,0,0,0);
+        const dueD   = s.dueDate ? new Date(s.dueDate + 'T00:00:00') : null;
+        const dl     = dueD ? Math.round((dueD - nowTmp) / 86400000) : null;
+        const dlTxt  = dl !== null
+          ? (dl < 0 ? `<span style="color:#EF4444;font-size:.6rem">${Math.abs(dl)}k o'tdi</span>`
+           : dl === 0 ? `<span style="color:#EF4444;font-size:.6rem">Bugun!</span>`
+           : `<span style="color:#F59E0B;font-size:.6rem">${dl}k qoldi</span>`)
+          : '';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:7px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:.82rem;font-weight:600">${s.name}</span>
+            ${dlTxt}
+          </div>
+          <span style="font-size:.75rem;font-weight:700;color:#EF4444">
+            ${s.amount ? s.amount.toLocaleString()+' so\'m' : '—'}
+          </span>
+        </div>`;
+      }).join('');
+
+      const unpaidSection = unpaidList.length
+        ? `<details style="margin-top:8px">
+            <summary style="cursor:pointer;font-size:.72rem;color:#EF4444;font-weight:700;list-style:none;
+                           display:flex;align-items:center;gap:4px;user-select:none">
+              ▸ ❌ To'lamaganlar (${unpaidList.length} kishi) — bosing
+            </summary>
+            <div style="margin-top:8px;padding:0 4px">${unpaidRows}</div>
+          </details>`
+        : '';
+
+      const debtRow = debt > 0
+        ? `<div style="display:flex;justify-content:space-between;font-size:.7rem;padding:6px 10px;
+              background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;margin-top:8px">
+            <span style="color:#EF4444;font-weight:600">❌ Qarzdorlik</span>
+            <span style="font-weight:800;color:#EF4444">${_fmtSomFull(debt)} so'm</span>
+          </div>`
+        : paidList.length === count && count > 0
+          ? `<div style="font-size:.7rem;padding:6px 10px;background:rgba(16,185,129,.08);
+              border:1px solid rgba(16,185,129,.2);border-radius:8px;color:#10B981;font-weight:700;
+              text-align:center;margin-top:8px">✅ Barcha ${count} kishi to'lagan!</div>`
+          : '';
+
+      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+                           padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <div style="font-weight:700;font-size:.92rem">${g.name}</div>
+            <div style="font-size:.68rem;color:var(--text2);margin-top:2px">
+              ${count} ta o'quvchi · ${nowMonthName} uchun
+            </div>
+          </div>
+          ${coursePrice
+            ? `<div style="font-size:.7rem;font-weight:700;color:var(--blue);background:rgba(59,130,246,.1);
+                  padding:3px 9px;border-radius:8px;flex-shrink:0">${coursePrice.toLocaleString()} so'm</div>`
+            : ''}
+        </div>
+        <!-- progress bar -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${bColor};border-radius:4px;transition:width .4s"></div>
+          </div>
+          <span style="font-size:.75rem;font-weight:800;color:${bColor};min-width:36px;text-align:right">${pct}%</span>
+        </div>
+        <!-- 3 stat -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:8px">
+          <div style="text-align:center;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
+                      border-radius:9px;padding:8px 4px">
+            <div style="font-size:1rem;font-weight:800;color:#10B981">${paidList.length}</div>
+            <div style="font-size:.6rem;color:var(--text2);margin-top:2px">✅ To'lagan</div>
+          </div>
+          <div style="text-align:center;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+                      border-radius:9px;padding:8px 4px">
+            <div style="font-size:1rem;font-weight:800;color:#EF4444">${unpaidList.length}</div>
+            <div style="font-size:.6rem;color:var(--text2);margin-top:2px">❌ To'lamagan</div>
+          </div>
+          <div style="text-align:center;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);
+                      border-radius:9px;padding:8px 4px">
+            <div style="font-size:.78rem;font-weight:800;color:var(--blue)">${_fmtSom(collected)}</div>
+            <div style="font-size:.6rem;color:var(--text2);margin-top:2px">💰 Yig'ilgan</div>
+          </div>
+        </div>
+        ${expected ? `<div style="display:flex;justify-content:space-between;font-size:.7rem;padding:6px 10px;
+          background:var(--bg3);border-radius:8px">
+          <span style="color:var(--text2)">Kutilgan (${count}×${Math.round(coursePrice/1000)}K)</span>
+          <span style="font-weight:700">${_fmtSomFull(expected)} so'm</span>
+        </div>` : ''}
+        ${debtRow}
+        ${unpaidSection}
+      </div>`;
+    }).filter(Boolean).join('');
+
+    const grandCount = grandPaid + grandUnpaid;
+    const grandPct   = grandCount ? Math.round(grandPaid / grandCount * 100) : 0;
+    const grandBC    = grandPct >= 80 ? '#10B981' : grandPct >= 50 ? '#F59E0B' : '#EF4444';
+    const grandDebt  = Math.max(0, grandExpected - grandCollected);
+
+    const grandCard = `
+    <div style="background:linear-gradient(135deg,rgba(59,130,246,.18),rgba(139,92,246,.12));
+                border:1px solid rgba(59,130,246,.35);border-radius:14px;padding:16px;margin-bottom:14px">
+      <div style="font-weight:800;font-size:.9rem;margin-bottom:2px">📅 ${nowMonthName}</div>
+      <div style="font-size:.68rem;color:var(--text2);margin-bottom:12px">Joriy oy hisobi · ${grandCount} ta o'quvchi</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="flex:1;height:10px;background:rgba(0,0,0,.2);border-radius:5px;overflow:hidden">
+          <div style="height:100%;width:${grandPct}%;background:${grandBC};border-radius:5px;transition:width .5s"></div>
+        </div>
+        <span style="font-size:.85rem;font-weight:800;color:${grandBC};min-width:38px;text-align:right">${grandPct}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px">
+        <div style="background:rgba(16,185,129,.15);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:1.1rem;font-weight:800;color:#10B981">${grandPaid}
+            <span style="font-size:.7rem;opacity:.7"> / ${grandCount}</span></div>
+          <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">✅ To'lagan / Jami</div>
+        </div>
+        <div style="background:rgba(59,130,246,.15);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:.95rem;font-weight:800;color:var(--blue)">${_fmtSomFull(grandCollected)}</div>
+          <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">💰 Yig'ilgan (so'm)</div>
+        </div>
+      </div>
+      ${grandExpected ? `
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+        <div style="background:rgba(0,0,0,.12);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:.88rem;font-weight:800;color:var(--text1)">${_fmtSomFull(grandExpected)}</div>
+          <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">📋 Kutilgan jami</div>
+        </div>
+        <div style="background:${grandDebt?'rgba(239,68,68,.15)':'rgba(16,185,129,.12)'};border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:.88rem;font-weight:800;color:${grandDebt?'#EF4444':'#10B981'}">
+            ${grandDebt ? _fmtSomFull(grandDebt)+' so\'m' : '✅ Yo\'q'}</div>
+          <div style="font-size:.62rem;font-weight:600;color:var(--text2);margin-top:2px">
+            ${grandDebt ? '❌ Qarzdorlik' : '✅ Qarzdorlik'}</div>
+        </div>
+      </div>` : ''}
+    </div>`;
+
+    el.innerHTML = modeToggle + grandCard +
+      `<div style="font-size:.7rem;font-weight:800;color:var(--text2);text-transform:uppercase;
+          letter-spacing:.6px;margin-bottom:8px">👥 Guruhlar bo'yicha</div>` +
+      (groupCards || `<div class="empty"><div class="ei">📅</div><p>Bu oy uchun ma'lumot yo'q</p></div>`);
+    return;
   }
 
+  // ═══════════════════════════════════════════════════════
+  // "UMUMIY" MODE — Oylar bo'yicha tarix
+  // Billing month = getPayBillingMonth asosida guruhlash
+  // ═══════════════════════════════════════════════════════
+  const byMonth = {};  // key: "YYYY-MM", value: { paidList, unpaidList, collected }
+
+  Object.entries(groups).forEach(function(ge) {
+    const g = ge[1];
+    Object.values(g.students || {}).forEach(function(st) {
+      const pay = st.payments || {};
+      if (!pay.date && !pay.dueDate) return; // ma'lumot yo'q
+
+      if (pay.paid && pay.date) {
+        // To'lagan — billing oy aniqlaymiz
+        const bym = getPayBillingMonth(pay.date, pay.dueDate);
+        if (!bym) return;
+        if (!byMonth[bym]) byMonth[bym] = { paidList:[], unpaidList:[], collected:0, expected:0 };
+        byMonth[bym].paidList.push({ name: st.name, group: g.name, amount: pay.amount||0, date: pay.date, dueDate: pay.dueDate||'' });
+        byMonth[bym].collected += pay.amount||0;
+      } else if (pay.dueDate) {
+        // To'lamagan — dueDate oyiga qo'yamiz
+        const bym = pay.dueDate.slice(0,7);
+        if (!byMonth[bym]) byMonth[bym] = { paidList:[], unpaidList:[], collected:0, expected:0 };
+        const courseP = getEffectivePrice(DATA.groups && Object.entries(DATA.groups).find(function(e){ return Object.values(e[1].students||{}).some(function(s2){ return s2===st; }); })?.[1] || {});
+        byMonth[bym].unpaidList.push({ name: st.name, group: g.name, amount: pay.amount||courseP||0, dueDate: pay.dueDate });
+      }
+    });
+  });
+
+  window._payMonthData = byMonth;
+  const monthEntries = Object.entries(byMonth).sort(function(a,b){ return b[0].localeCompare(a[0]); });
+
+  // Grand summary (umumiy barcha oylar)
+  let totalCollected = 0, totalPaid = 0, totalUnpaid = 0;
+  monthEntries.forEach(function(me) {
+    totalCollected += me[1].collected;
+    totalPaid      += me[1].paidList.length;
+    totalUnpaid    += me[1].unpaidList.length;
+  });
+
+  const grandCard2 = `
+  <div style="background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(59,130,246,.12));
+              border:1px solid rgba(139,92,246,.35);border-radius:14px;padding:16px;margin-bottom:14px">
+    <div style="font-weight:800;font-size:.9rem;margin-bottom:2px">📊 Umumiy tarix</div>
+    <div style="font-size:.68rem;color:var(--text2);margin-bottom:12px">${monthEntries.length} oy · jami yozuv</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <div style="background:rgba(16,185,129,.15);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:1.1rem;font-weight:800;color:#10B981">${totalPaid}</div>
+        <div style="font-size:.6rem;color:var(--text2);margin-top:2px">✅ To'lagan</div>
+      </div>
+      <div style="background:rgba(239,68,68,.12);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:1.1rem;font-weight:800;color:#EF4444">${totalUnpaid}</div>
+        <div style="font-size:.6rem;color:var(--text2);margin-top:2px">❌ To'lamagan</div>
+      </div>
+      <div style="background:rgba(59,130,246,.15);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:.9rem;font-weight:800;color:var(--blue)">${_fmtSom(totalCollected)}</div>
+        <div style="font-size:.6rem;color:var(--text2);margin-top:2px">💰 Yig'ilgan</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Oylar kartasi
+  const monthCards = monthEntries.length ? monthEntries.map(function(me) {
+    const ym = me[0], d = me[1];
+    const isCurrent = ym === nowYM;
+    const tot = d.paidList.length + d.unpaidList.length;
+    const pct = tot ? Math.round(d.paidList.length/tot*100) : 0;
+    const bc  = pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444';
+    return `<div style="background:var(--bg2);border:1px solid ${isCurrent?'rgba(59,130,246,.5)':'var(--border)'};
+                        border-radius:12px;padding:14px;margin-bottom:8px
+                        ${isCurrent?';box-shadow:0 0 0 2px rgba(59,130,246,.15)':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <span style="font-weight:800;font-size:.9rem">${_fmtMonth(ym)}</span>
+          ${isCurrent?'<span style="font-size:.62rem;background:var(--blue);color:#fff;padding:1px 7px;border-radius:99px;margin-left:6px">Joriy oy</span>':''}
+        </div>
+        <div style="font-size:.7rem;font-weight:700;color:${bc}">${pct}% · ${d.paidList.length}/${tot}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${bc};border-radius:3px"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div onclick="showPayMonth('${ym}','paid')"
+          style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
+                 border-radius:9px;padding:9px;text-align:center;cursor:pointer">
+          <div style="font-size:.85rem;font-weight:800;color:#10B981">${_fmtSomFull(d.collected)} so'm</div>
+          <div style="font-size:.6rem;color:var(--text2);margin-top:3px">✅ To'lagan ${d.paidList.length} kishi ▸</div>
+        </div>
+        <div onclick="showPayMonth('${ym}','unpaid')"
+          style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+                 border-radius:9px;padding:9px;text-align:center;cursor:pointer">
+          <div style="font-size:.85rem;font-weight:800;color:#EF4444">${d.unpaidList.length} ta</div>
+          <div style="font-size:.6rem;color:var(--text2);margin-top:3px">❌ To'lamagan ▸</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty"><div class="ei">📊</div><p>Ma'lumot yo'q</p></div>`;
+
+  // Bottom sheet modal: to'laganlar yoki to'lamaganlar ro'yxati
   window.showPayMonth = function(ym, type) {
-    const d = (window._payMonthData||{})[ym]; if(!d) return;
-    const list  = type==='paid' ? d.paidList : d.pendingList;
-    const title = type==='paid' ? "✅ To'laganlar" : "❌ To'lamaganlar";
-    const color = type==='paid' ? '#10B981' : '#EF4444';
-    const rows  = list.length ? list.map(function(s){
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-        <div><div style="font-weight:700;font-size:.85rem">${s.name}</div><div style="font-size:.7rem;color:var(--text2)">${s.group}</div></div>
+    const d = (window._payMonthData||{})[ym]; if (!d) return;
+    const list  = type === 'paid' ? d.paidList : d.unpaidList;
+    const title = type === 'paid' ? "✅ To'laganlar" : "❌ To'lamaganlar";
+    const color = type === 'paid' ? '#10B981' : '#EF4444';
+    const rows  = list.length ? list.map(function(s) {
+      const sub = type === 'paid'
+        ? `${s.group} · ${fmtDate(s.date)}→${s.dueDate?fmtDate(s.dueDate):''}`
+        : `${s.group}${s.dueDate?' · muddat: '+fmtDate(s.dueDate):''}`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:9px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:700;font-size:.85rem">${s.name}</div>
+          <div style="font-size:.68rem;color:var(--text2)">${sub}</div>
+        </div>
         <div style="font-weight:800;color:${color}">${_fmtSomFull(s.amount)} so'm</div>
       </div>`;
-    }).join('') : `<div style="text-align:center;padding:20px;color:var(--text2)">Hech kim yo'q</div>`;
-    const m = document.createElement('div');
-    m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
-    m.innerHTML=`<div style="background:var(--bg1);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:75vh;display:flex;flex-direction:column">
+    }).join('') : `<div style="text-align:center;padding:24px;color:var(--text2)">Hech kim yo'q</div>`;
+
+    const mo = document.createElement('div');
+    mo.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:flex-end;justify-content:center';
+    mo.innerHTML = `<div style="background:var(--bg1);border-radius:18px 18px 0 0;width:100%;max-width:480px;max-height:78vh;display:flex;flex-direction:column">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border)">
-        <div><div style="font-weight:800;font-size:.95rem;color:${color}">${title}</div>
-        <div style="font-size:.72rem;color:var(--text2);margin-top:2px">${_fmtMonth(ym)} — ${list.length} ta</div></div>
-        <button onclick="this.closest('[style*=fixed]').remove()" style="background:var(--bg2);border:none;color:var(--text1);width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer">✕</button>
+        <div>
+          <div style="font-weight:800;font-size:.95rem;color:${color}">${title}</div>
+          <div style="font-size:.72rem;color:var(--text2);margin-top:2px">${_fmtMonth(ym)} — ${list.length} ta</div>
+        </div>
+        <button onclick="this.closest('[style*=fixed]').remove()"
+          style="background:var(--bg2);border:none;color:var(--text1);width:32px;height:32px;
+                 border-radius:50%;font-size:1.1rem;cursor:pointer">✕</button>
       </div>
-      <div style="overflow-y:auto;padding:0 18px 20px">${rows}</div></div>`;
-    m.addEventListener('click',function(e){if(e.target===m)m.remove();});
-    document.body.appendChild(m);
+      <div style="overflow-y:auto;padding:0 18px 24px">${rows}</div>
+    </div>`;
+    mo.addEventListener('click', function(e){ if (e.target === mo) mo.remove(); });
+    document.body.appendChild(mo);
   };
 
-  el.innerHTML = modeToggle + grandCard +
-    `<div style="font-size:.7rem;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">👥 Guruhlar bo'yicha</div>` +
-    (groupCards || `<div class="empty"><div class="ei">👥</div><p>Guruh yo'q</p></div>`) +
-    monthSection;
+  el.innerHTML = modeToggle + grandCard2 +
+    `<div style="font-size:.7rem;font-weight:800;color:var(--text2);text-transform:uppercase;
+        letter-spacing:.6px;margin-bottom:8px">🗓 Oylar bo'yicha</div>` +
+    monthCards;
 };
 
 // ============================================================
