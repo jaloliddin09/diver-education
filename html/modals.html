@@ -1,0 +1,105 @@
+<!-- ===== MODALS ===== -->
+<!-- Add Group -->
+<div class="modal-overlay" id="m-addgroup">
+  <div class="modal">
+    <div class="modal-head"><h3>➕ Yangi guruh</h3><button class="btn-close" onclick="closeModal('m-addgroup')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Guruh nomi</label><input class="inp" id="mg-name" placeholder="Masalan: 3-A guruh"></div>
+      <div class="alert alert-err" id="mg-err"></div>
+      <button class="btn btn-primary btn-full" onclick="addGroup()">Saqlash</button>
+    </div>
+  </div>
+</div>
+<!-- Edit Group -->
+<div class="modal-overlay" id="m-editgroup">
+  <div class="modal">
+    <div class="modal-head"><h3>✏️ Guruhni tahrirlash</h3><button class="btn-close" onclick="closeModal('m-editgroup')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Guruh nomi</label><input class="inp" id="meg-name"></div>
+      <input type="hidden" id="meg-id">
+      <button class="btn btn-primary btn-full" onclick="updateGroup()" style="margin-bottom:8px">Saqlash</button>
+      <button class="btn btn-danger btn-full" onclick="deleteGroup()">🗑️ Guruhni o'chirish</button>
+    </div>
+  </div>
+</div>
+<!-- Add Student -->
+<div class="modal-overlay" id="m-addstu">
+  <div class="modal">
+    <div class="modal-head"><h3>➕ Yangi o'quvchi</h3><button class="btn-close" onclick="closeModal('m-addstu')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Ism Familiya</label><input class="inp" id="ms-name" placeholder="Masalan: Alisher Karimov"></div>
+      <div class="form-group"><label>PIN kod (4 raqam)</label><input type="number" class="inp" id="ms-pin" placeholder="1234" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"></div>
+      <input type="hidden" id="ms-groupid">
+      <div class="alert alert-err" id="ms-err"></div>
+      <button class="btn btn-primary btn-full" onclick="addStudent()">Saqlash</button>
+    </div>
+  </div>
+</div>
+<!-- Edit Student -->
+<div class="modal-overlay" id="m-editstu">
+  <div class="modal">
+    <div class="modal-head"><h3>✏️ O'quvchini tahrirlash</h3><button class="btn-close" onclick="closeModal('m-editstu')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Ism Familiya</label><input class="inp" id="mes-name"></div>
+      <div class="form-group"><label>PIN kod</label><input type="number" class="inp" id="mes-pin" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"></div>
+      <div id="mes-pin-change-info" style="display:none;margin-bottom:8px"></div>
+      <input type="hidden" id="mes-id">
+      <input type="hidden" id="mes-groupid">
+      <button class="btn btn-primary btn-full" onclick="updateStudent()" style="margin-bottom:8px">Saqlash</button>
+      <button class="btn btn-danger btn-full" onclick="deleteStudent()">🗑️ O'chirilsin</button>
+    </div>
+  </div>
+</div>
+<!-- Payment Edit -->
+<div class="modal-overlay" id="m-payment">
+  <div class="modal">
+    <div class="modal-head"><h3 id="pay-modal-title">To'lov</h3><button class="btn-close" onclick="closeModal('m-payment')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>To'lov miqdori (so'm)</label><input type="number" class="inp" id="pay-amount" placeholder="500000"></div>
+      <div class="form-group"><label>Sana</label><input type="date" class="inp" id="pay-date"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <button class="toggle" id="pay-toggle" onclick="this.classList.toggle('on')"></button>
+        <span style="font-size:.88rem;font-weight:600">To'langan</span>
+      </div>
+      <input type="hidden" id="pay-stu-id">
+      <input type="hidden" id="pay-group-id">
+      <button class="btn btn-primary btn-full" onclick="savePayment()">Saqlash</button>
+    </div>
+  </div>
+</div>
+<!-- Video Watch -->
+<div class="modal-overlay" id="m-video">
+  <div class="modal">
+    <div class="modal-head"><h3 id="vid-modal-title">Video</h3><button class="btn-close" onclick="closeVideoModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="video-container" id="vid-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Student Samara Modal -->
+<div class="modal-overlay" id="m-stu-samara">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <div>
+        <h3 id="stu-samara-title">📊 Samara</h3>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px" id="stu-samara-sub"></div>
+      </div>
+      <button class="btn-close" onclick="closeModal('m-stu-samara')">✕</button>
+    </div>
+    <div class="modal-body" style="padding-top:14px">
+      <div class="tab-row" id="admin-samara-tabs" style="margin-bottom:12px">
+        <button class="tab-btn active" onclick="setAdminSamara(7,this)">7 kun</button>
+        <button class="tab-btn" onclick="setAdminSamara(30,this)">30 kun</button>
+        <button class="tab-btn" onclick="setAdminSamara(0,this)">Barchasi</button>
+      </div>
+      <div id="admin-samara-summary"></div>
+      <div id="admin-samara-advice"></div>
+      <div class="card" style="margin-bottom:12px"><div class="chart-wrap"><canvas id="admin-samara-chart"></canvas></div></div>
+      <div id="admin-samara-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
