@@ -232,6 +232,37 @@ function renderParentHome() {
     </div>`;
   }
 
+  // ─── To'lov ogohlantirishi (bosh sahifa) ──────────────────
+  const pay = (stu && stu.payments) ? stu.payments : {};
+  const bannerEl = document.getElementById('parent-pay-banner');
+  if (bannerEl) {
+    let payBannerHtml = '';
+    const nextDueIso = pay.dueDayOfMonth
+      ? nextDueDateFromDay(pay.dueDayOfMonth)
+      : (pay.dueDate || '');
+    if (nextDueIso) {
+      const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+      const dueD   = new Date(nextDueIso + 'T00:00:00');
+      const dl = Math.ceil((dueD - todayD) / 86400000);
+      if (dl <= 5) {
+        let icon = '⏰', msg = '', bg = 'rgba(245,158,11,.12)', border = 'rgba(245,158,11,.4)', clr = '#F59E0B';
+        if (dl < 0)       { icon = '🚨'; msg = `To'lov muddati ${Math.abs(dl)} kun oldin o'tdi!`; bg='rgba(239,68,68,.1)'; border='rgba(239,68,68,.3)'; clr='#EF4444'; }
+        else if (dl === 0) { icon = '🔔'; msg = `Bugun to'lov kuni! (${fmtDate(nextDueIso)})`; bg='rgba(239,68,68,.1)'; border='rgba(239,68,68,.3)'; clr='#EF4444'; }
+        else               { msg = `To'lov sanasiga ${dl} kun qoldi (${fmtDate(nextDueIso)})`; }
+        payBannerHtml = `
+        <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:12px 16px;
+                    display:flex;align-items:center;gap:10px;cursor:pointer" onclick="showParentPage('profile')">
+          <span style="font-size:1.4rem">${icon}</span>
+          <div style="flex:1">
+            <div style="font-size:.82rem;font-weight:700;color:${clr}">${msg}</div>
+            <div style="font-size:.68rem;color:var(--text2);margin-top:2px">To'lov ma'lumotlarini ko'rish →</div>
+          </div>
+        </div>`;
+      }
+    }
+    bannerEl.innerHTML = payBannerHtml;
+  }
+
   // Notifications for parent
   renderNotifsParent();
 

@@ -279,7 +279,7 @@
       <div class="card">
         <div style="display:flex;gap:8px;margin-bottom:10px">
           <select class="inp" id="grade-group" onchange="buildGradeForm()" style="flex:1"></select>
-          <input type="date" class="inp" id="grade-date" onchange="buildGradeForm()" style="flex:1">
+          <input type="text" class="inp" id="grade-date" placeholder="KK.OO.YYYY" maxlength="10" oninput="formatDateInput(this);buildGradeForm()" style="flex:1">
         </div>
         <div class="hint-box" id="grade-hint-box">⚡ UV: 0–50 · MT: 0–25 · Qatnashish toggle</div>
         <div style="display:grid;grid-template-columns:1fr 54px 48px 54px 42px 40px;gap:5px;padding:0 10px;margin-bottom:5px">
@@ -652,6 +652,7 @@
         <button class="btn btn-sm btn-ghost" onclick="pwaDismissBar()">✕</button>
       </div>
       <div id="parent-hello-box"></div>
+      <div id="parent-pay-banner"></div>
       <div id="parent-curr-card" class="card" style="margin-bottom:12px;padding:14px"></div>
       <div id="notifs-parent-box"></div>
       <div id="stories-box"></div>
@@ -810,7 +811,7 @@
       </div>
       <div id="pay-amount-hint" style="display:none;font-size:.72rem;color:var(--green);margin-top:-10px;margin-bottom:10px;font-weight:600"></div>
       <div class="form-group"><label>To'lov miqdori (so'm)</label><input type="number" class="inp" id="pay-amount" placeholder="500000"></div>
-      <div class="form-group"><label>Sana</label><input type="date" class="inp" id="pay-date"></div>
+      <div class="form-group"><label>Sana</label><input type="text" class="inp" id="pay-date" placeholder="KK.OO.YYYY" maxlength="10" oninput="formatDateInput(this)"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
         <button class="toggle" id="pay-toggle" onclick="this.classList.toggle('on')"></button>
         <span style="font-size:.88rem;font-weight:600">To'langan</span>

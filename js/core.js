@@ -23,6 +23,34 @@ function fmtDate(d) {
   return dt.toLocaleDateString('uz-UZ', { day:'2-digit', month:'short' });
 }
 
+// KK.OO.YYYY ↔ YYYY-MM-DD aylantirish
+function isoToDisplay(iso) {
+  if (!iso) return '';
+  const p = iso.split('-');
+  return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : iso;
+}
+function displayToIso(disp) {
+  if (!disp) return '';
+  const p = disp.split('.');
+  if (p.length !== 3 || p[2].length !== 4) return '';
+  return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
+}
+window.formatDateInput = function(inp) {
+  let v = inp.value.replace(/[^\d]/g, '');
+  if (v.length > 2) v = v.slice(0, 2) + '.' + v.slice(2);
+  if (v.length > 5) v = v.slice(0, 5) + '.' + v.slice(5);
+  if (v.length > 10) v = v.slice(0, 10);
+  inp.value = v;
+};
+// Takrorlanuvchi to'lov kuni: keyingi to'g'ri sana (shu oy yoki keyingi oy)
+function nextDueDateFromDay(day) {
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const y = now.getFullYear(), mo = now.getMonth();
+  let due = new Date(y, mo, day);
+  if (due < now) due = new Date(y, mo + 1, day);
+  return due.toISOString().slice(0, 10);
+}
+
 function scoreClass(s) {
   if (s >= 90) return 'score-s';
   if (s >= 70) return 'score-b';

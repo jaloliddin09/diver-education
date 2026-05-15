@@ -22,11 +22,12 @@ function renderProfile() {
   // ─── To'lov muddati hisoblash ───────────────────────────────
   let nextDueStr = '';
   let daysLeft = null;
-  // dueDate mavjud bo'lsa uni ishlatamiz, aks holda pay.date + 1 oy
-  const hasDueDate = !!(pay.dueDate);
-  if (pay.dueDate || pay.date) {
+  if (pay.dueDayOfMonth || pay.dueDate || pay.date) {
     let nextDue;
-    if (pay.dueDate) {
+    if (pay.dueDayOfMonth) {
+      // Takrorlanuvchi: har oy shu kunda
+      nextDue = new Date(nextDueDateFromDay(pay.dueDayOfMonth) + 'T00:00:00');
+    } else if (pay.dueDate) {
       nextDue = new Date(pay.dueDate);
     } else {
       const lastPaid = new Date(pay.date);
@@ -388,7 +389,7 @@ window.addEventListener('load', () => {
 
   // Set today date
   const gd = document.getElementById('grade-date');
-  if (gd) gd.value = today();
+  if (gd) gd.value = isoToDisplay(today());
   document.getElementById('admin-date-txt').textContent = 'Bugun: ' + fmtDate(today());
 
   applySettings();

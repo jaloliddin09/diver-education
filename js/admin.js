@@ -615,7 +615,7 @@ window.gradeUpdateRow = function(sid, uvMax, mtMax, faolMax) {
 };
 window.buildGradeForm = function() {
   const gid = document.getElementById('grade-group').value;
-  const date = document.getElementById('grade-date').value;
+  const date = displayToIso(document.getElementById('grade-date').value) || today();
   const container = document.getElementById('grade-form');
   const histCard = document.getElementById('grade-history-card');
   const uvMax = DATA.settings.uvMax || 50;
@@ -672,7 +672,7 @@ window.buildGradeForm = function() {
 
 window.saveGrades = async function() {
   const gid = document.getElementById('grade-group').value;
-  const date = document.getElementById('grade-date').value;
+  const date = displayToIso(document.getElementById('grade-date').value) || today();
   if (!gid || !date) { toast('❌ Guruh va sana tanlang!'); return; }
 
   const group = DATA.groups[gid];
@@ -903,11 +903,14 @@ window.renderPayments = function() {
     const discountInfo = (pay.discount && coursePrice) ? ' · '+pay.discount+'% chegirma' : '';
     const amountInfo = pay.amount ? pay.amount.toLocaleString()+' so\'m' : (coursePrice ? coursePrice.toLocaleString()+' so\'m (taxminiy)' : 'Summa kiritilmagan');
     const dateInfo = pay.date ? ' · ' + fmtDate(pay.date) : '';
-    // dueDate qolgan kunlar
+    // dueDate qolgan kunlar (takrorlanuvchi kun ustuvor)
     let dueBadge = '';
-    if (pay.dueDate) {
+    const effectiveDue = pay.dueDayOfMonth
+      ? nextDueDateFromDay(pay.dueDayOfMonth)
+      : (pay.dueDate || '');
+    if (effectiveDue) {
       const nowTmp = new Date(); nowTmp.setHours(0,0,0,0);
-      const dueTmp = new Date(pay.dueDate); dueTmp.setHours(0,0,0,0);
+      const dueTmp = new Date(effectiveDue); dueTmp.setHours(0,0,0,0);
       const dl = Math.round((dueTmp - nowTmp) / 86400000);
       if (dl < 0)       dueBadge = `<span style="font-size:.6rem;background:#EF4444;color:#fff;padding:1px 6px;border-radius:6px;margin-left:4px">🚨${Math.abs(dl)}k o'tdi</span>`;
       else if (dl <= 3) dueBadge = `<span style="font-size:.6rem;background:#F59E0B;color:#fff;padding:1px 6px;border-radius:6px;margin-left:4px">⚠️${dl}k</span>`;
@@ -969,7 +972,7 @@ window.openPayment = function(sid, gid) {
   } else {
     document.getElementById('pay-amount').value = pay.amount || '';
   }
-  document.getElementById('pay-date').value = pay.date || today();
+  document.getElementById('pay-date').value = isoToDisplay(pay.date || today());
   const tog = document.getElementById('pay-toggle');
   if (pay.paid) tog.classList.add('on'); else tog.classList.remove('on');
   document.getElementById('pay-stu-id').value = sid;
@@ -981,7 +984,7 @@ window.savePayment = async function() {
   const sid = document.getElementById('pay-stu-id').value;
   const gid = document.getElementById('pay-group-id').value;
   const amount   = parseInt(document.getElementById('pay-amount').value) || 0;
-  const date     = document.getElementById('pay-date').value;
+  const date     = displayToIso(document.getElementById('pay-date').value) || today();
   const paid     = document.getElementById('pay-toggle').classList.contains('on');
   const discount = parseFloat(document.getElementById('pay-discount').value) || 0;
 
@@ -1019,14 +1022,18 @@ window.savePayment = async function() {
 // ============================================================
 
 // To'lov dueDate saqlash
-window.saveDueDate = async function(sid, gid, dateVal) {
+window.saveDueDate = async function(sid, gid, displayVal) {
   if (!DATA.groups[gid]?.students?.[sid]) return;
+  const dateVal = displayToIso(displayVal);
+  const dueDayOfMonth = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : null;
   DATA.groups[gid].students[sid].payments = DATA.groups[gid].students[sid].payments || {};
   DATA.groups[gid].students[sid].payments.dueDate = dateVal || null;
+  DATA.groups[gid].students[sid].payments.dueDayOfMonth = dueDayOfMonth || null;
   saveLocal();
   renderPayDates();
-  toast('✅ To\'lov sanasi saqlandi');
-  fbUpdate('groups/' + gid + '/students/' + sid + '/payments', { dueDate: dateVal || null })
+  const dayHint = dueDayOfMonth ? ` (har oy ${dueDayOfMonth}-sana)` : '';
+  toast('✅ To\'lov sanasi saqlandi' + dayHint);
+  fbUpdate('groups/' + gid + '/students/' + sid + '/payments', { dueDate: dateVal || null, dueDayOfMonth: dueDayOfMonth || null })
     .catch(function(e){ console.warn('fb:', e); });
 };
 
@@ -1051,7 +1058,10 @@ window.renderPayDates = function() {
 
     const stuCards = students.map(function([sid, s]) {
       const pay = s.payments || {};
-      const dueDate = pay.dueDate || '';
+      // Takrorlanuvchi kun bo'lsa — har doim dinamik hisoblaymiz
+      const dueDate = pay.dueDayOfMonth
+        ? nextDueDateFromDay(pay.dueDayOfMonth)
+        : (pay.dueDate || '');
 
       // --- kun hisobi ---
       let daysLeft = null, barPct = 0, barColor = '#10B981', badgeHtml = '', badgeBg = '';
@@ -1134,14 +1144,16 @@ window.renderPayDates = function() {
         </div>
         <!-- Sana input -->
         <div style="display:flex;gap:7px;align-items:center">
-          <div style="font-size:.65rem;color:var(--text2);font-weight:600;flex-shrink:0">📅 Keyingi to'lov:</div>
-          <input type="date" id="due-${gid}-${sid}" value="${dueDate}"
+          <div style="font-size:.65rem;color:var(--text2);font-weight:600;flex-shrink:0">📅 To'lov kuni:</div>
+          <input type="text" id="due-${gid}-${sid}" value="${isoToDisplay(dueDate)}" placeholder="KK.OO.YYYY" maxlength="10"
+            oninput="formatDateInput(this)"
             style="flex:1;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;
                    color:var(--text1);font-size:.82rem;font-weight:600;outline:none;font-family:inherit">
           <button onclick="saveDueDate('${sid}','${gid}',document.getElementById('due-${gid}-${sid}').value)"
             style="padding:7px 13px;background:var(--blue);border:none;border-radius:9px;color:#fff;
                    font-size:.78rem;font-weight:700;cursor:pointer;flex-shrink:0">💾</button>
         </div>
+        ${pay.dueDayOfMonth ? `<div style="font-size:.62rem;color:#10B981;margin-top:4px">🔄 Har oy ${pay.dueDayOfMonth}-sanada takrorlanadi</div>` : ''}
         ${timelineHtml}
       </div>`;
     }).join('');
