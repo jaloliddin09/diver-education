@@ -1131,12 +1131,14 @@ window.saveAllPayments = async function(gid) {
 window.deletePayHistory = async function(sid, gid) {
   if (!confirm('To\'lov tarixini tozalash? Bu amalni qaytarib bo\'lmaydi.')) return;
   if (!DATA.groups[gid]?.students?.[sid]) return;
-  DATA.groups[gid].students[sid].payments = DATA.groups[gid].students[sid].payments || {};
-  DATA.groups[gid].students[sid].payments.history = [];
+  const pay = DATA.groups[gid].students[sid].payments || {};
+  pay.history = [];
+  DATA.groups[gid].students[sid].payments = pay;
   saveLocal();
   renderPayments();
   toast('🗑️ Tarix tozalandi');
-  fbUpdate('groups/' + gid + '/students/' + sid + '/payments', { history: [] })
+  // fbRemove — bo'sh array Firebase da muammo beradi, node ni o'chiramiz
+  fbRemove('groups/' + gid + '/students/' + sid + '/payments/history')
     .catch(function(e){ console.warn('fb:', e); });
 };
 
