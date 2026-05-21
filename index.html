@@ -773,6 +773,10 @@
     <div class="modal-body">
       <div class="form-group"><label>Ism Familiya</label><input class="inp" id="ms-name" placeholder="Masalan: Alisher Karimov"></div>
       <div class="form-group"><label>PIN kod (4 raqam)</label><input type="number" class="inp" id="ms-pin" placeholder="1234" oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"></div>
+      <div class="form-group">
+        <label>📅 Qabul sanasi <span style="color:var(--text3);font-size:.75rem">(to'lov kuni shu sana bo'yicha)</span></label>
+        <input type="text" class="inp" id="ms-joindate" placeholder="KK.OO.YYYY" maxlength="10" oninput="formatDateInput(this)">
+      </div>
       <input type="hidden" id="ms-groupid">
       <div class="alert alert-err" id="ms-err"></div>
       <button class="btn btn-primary btn-full" onclick="addStudent()">Saqlash</button>

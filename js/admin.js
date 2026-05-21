@@ -385,15 +385,31 @@ window.addStudent = async function() {
       if (String(s.pin) === String(pin)) { errEl.textContent='Bu PIN allaqachon ishlatilgan!'; errEl.style.display='block'; return; }
     }
   }
+  // Qabul sanasi → to'lov kun tsikli
+  const joinDateDisplay = document.getElementById('ms-joindate')?.value || '';
+  const joinDate = displayToIso(joinDateDisplay) || today();
+  const dueDayOfMonth = new Date(joinDate + 'T00:00:00').getDate();
+  // Guruh uchun belgilangan kun ustuvor bo'lsa o'sha ishlatiladi
+  const g0 = DATA.groups[gid] || {};
+  const effectiveDay = g0.payDueDay || dueDayOfMonth;
+  const dueDate = nextDueDateFromDay(effectiveDay);
+
   const sid = genId();
-  const stuData = { name, pin, createdAt: nowTs(), payments: { amount:0, paid:false, date:'' }, records:{} };
+  const stuData = {
+    name, pin, createdAt: nowTs(), joinDate,
+    payments: { amount: 0, paid: false, date: '', dueDayOfMonth: effectiveDay, dueDate, history: [] },
+    records: {}
+  };
   if (!DATA.groups[gid]) DATA.groups[gid] = { name:'', students:{} };
   if (!DATA.groups[gid].students) DATA.groups[gid].students = {};
   DATA.groups[gid].students[sid] = stuData;
   saveLocal();
   closeModal('m-addstu');
+  // Formani tozalaymiz
+  const jd = document.getElementById('ms-joindate');
+  if (jd) jd.value = '';
   renderGroups();
-  toast('✅ O\'quvchi qo\'shildi');
+  toast('✅ O\'quvchi qo\'shildi · To\'lov kuni: har oy ' + effectiveDay + '-sana');
   fbSet(`groups/${gid}/students/${sid}`, stuData).catch(e => console.warn('fb:', e));
 };
 
@@ -821,22 +837,46 @@ window.bulkUpdatePayAmounts = async function(gid) {
   Promise.all(fbUpdates).catch(function(e){ console.warn('fb:', e); });
 };
 
-// Guruh to'lov sozlamalarini to'g'ridan-to'g'ri saqlash
+// Guruh to'lov sozlamalarini saqlash + o'quvchilarni yangilash
 window.saveGroupPaySettings = async function(gid) {
   const g = DATA.groups[gid];
   if (!g) return;
   const priceEl = document.getElementById('gps-price');
   const dayEl   = document.getElementById('gps-day');
   const coursePrice = parseInt(priceEl && priceEl.value) || 0;
-  const payDueDay   = parseInt(dayEl   && dayEl.value)   || 0;
+  const newDay      = parseInt(dayEl   && dayEl.value)   || 0;
+  const oldDay      = g.payDueDay || 0;
+
+  // Kun o'zgarsa — ogohlantirish + barcha o'quvchilarni yangilash
+  if (newDay && newDay !== oldDay) {
+    const stuCount = Object.keys(g.students || {}).length;
+    const ok = confirm(
+      '⚠️ Diqqat!\n\nGuruh to\'lov sanasi ' + newDay + '-sana bo\'ladi.\n' +
+      stuCount + ' ta o\'quvchining to\'lov sanasi ham ' + newDay +
+      '-sana qilib yangilanadi (avvalgi sanalar almashtiriladi).\n\nDavom etasizmi?'
+    );
+    if (!ok) return;
+
+    const fbUpds = [];
+    Object.entries(g.students || {}).forEach(function([sid, s]) {
+      const pay = Object.assign({}, s.payments || {});
+      pay.dueDayOfMonth = newDay;
+      pay.dueDate = nextDueDateFromDay(newDay);
+      DATA.groups[gid].students[sid].payments = pay;
+      fbUpds.push(fbUpdate('groups/' + gid + '/students/' + sid + '/payments',
+        { dueDayOfMonth: newDay, dueDate: pay.dueDate }));
+    });
+    Promise.all(fbUpds).catch(function(e){ console.warn('fb:', e); });
+  }
+
   DATA.groups[gid].coursePrice = coursePrice || null;
-  DATA.groups[gid].payDueDay   = payDueDay   || null;
+  DATA.groups[gid].payDueDay   = newDay || null;
   saveLocal();
   renderPayments();
-  renderHisobKitob && renderHisobKitob();
-  toast('✅ Saqlandi');
-  fbUpdate('groups/' + gid, { coursePrice: coursePrice||null, payDueDay: payDueDay||null })
-    .catch(function(e){ console.warn('fb:',e); });
+  if (typeof renderHisobKitob === 'function') renderHisobKitob();
+  toast('✅ Saqlandi' + (newDay ? ' · Har oy ' + newDay + '-sana' : ''));
+  fbUpdate('groups/' + gid, { coursePrice: coursePrice||null, payDueDay: newDay||null })
+    .catch(function(e){ console.warn('fb:', e); });
 };
 
 window.renderPayments = function() {
@@ -898,11 +938,13 @@ window.renderPayments = function() {
   </div>`;
 
   // ─── Inline to'lov kartalari ────────────────────────────────
+  const nowBase = new Date(); nowBase.setHours(0,0,0,0);
+
   const list = students.map(function(entry){
     const sid = entry[0], s = entry[1];
     const pay = s.payments || {};
 
-    // To'lov sanasi: dueDayOfMonth → dinamik, yo'q bo'lsa dueDate, yo'q bo'lsa bugun
+    // To'lov sanasi: dueDayOfMonth → dinamik hisoblash
     const effectiveDue = pay.dueDayOfMonth
       ? nextDueDateFromDay(pay.dueDayOfMonth)
       : (pay.dueDate || today());
@@ -913,36 +955,65 @@ window.renderPayments = function() {
 
     // Qolgan kunlar badge
     let dueBadge = '', borderColor = 'var(--border)';
-    const nowTmp = new Date(); nowTmp.setHours(0,0,0,0);
     const dueTmp = new Date(effectiveDue); dueTmp.setHours(0,0,0,0);
-    const dl = Math.round((dueTmp - nowTmp) / 86400000);
+    const dl = Math.round((dueTmp - nowBase) / 86400000);
     if (dl < 0) {
-      dueBadge = `<span style="font-size:.58rem;background:#EF4444;color:#fff;padding:1px 6px;border-radius:6px;margin-left:5px">🚨${Math.abs(dl)}k o'tdi</span>`;
+      dueBadge = `<span style="font-size:.58rem;background:#EF4444;color:#fff;padding:1px 6px;border-radius:6px;margin-left:5px">🚨 ${Math.abs(dl)}k o'tdi</span>`;
       borderColor = '#EF444440';
-    } else if (dl <= 3) {
-      dueBadge = `<span style="font-size:.58rem;background:#F59E0B;color:#fff;padding:1px 6px;border-radius:6px;margin-left:5px">⚠️${dl}k</span>`;
+    } else if (dl === 0) {
+      dueBadge = `<span style="font-size:.58rem;background:#EF4444;color:#fff;padding:1px 6px;border-radius:6px;margin-left:5px">🔔 Bugun!</span>`;
+      borderColor = '#EF444440';
+    } else if (dl <= 5) {
+      dueBadge = `<span style="font-size:.58rem;background:#F59E0B;color:#fff;padding:1px 6px;border-radius:6px;margin-left:5px">⚠️ ${dl}k</span>`;
       borderColor = '#F59E0B40';
     }
 
-    const dueHint = pay.dueDayOfMonth
-      ? `<div style="font-size:.6rem;color:#10B981;margin-top:5px">📅 Har oy ${pay.dueDayOfMonth}-sana → keyingi: ${fmtDate(effectiveDue)}</div>`
+    // Qabul sanasi hintti
+    const joinHint = s.joinDate
+      ? `<span style="font-size:.58rem;color:var(--text3)"> · qabul: ${fmtDate(s.joinDate)}</span>`
       : '';
+
+    // To'lov tsikli hint
+    const cycleHint = pay.dueDayOfMonth
+      ? `<div style="font-size:.6rem;color:#10B981;margin-top:4px">📅 Har oy ${pay.dueDayOfMonth}-sana · keyingi: ${fmtDate(effectiveDue)}</div>`
+      : '';
+
+    // To'lov tarixi
+    const history = pay.history || [];
+    const histHtml = history.length ? `
+      <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:7px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <span style="font-size:.6rem;font-weight:700;color:var(--text2)">📋 To'lov tarixi (${history.length})</span>
+          <button onclick="deletePayHistory('${sid}','${gid}')"
+            style="font-size:.6rem;padding:2px 8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);
+                   border-radius:6px;color:#EF4444;cursor:pointer;font-weight:700">🗑️ Tozalash</button>
+        </div>
+        ${history.slice().reverse().slice(0,3).map(function(h){
+          return `<div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--text2);padding:2px 0">
+            <span>${fmtDate(h.date)}</span>
+            <span style="font-weight:700;color:#10B981">${(h.amount||0).toLocaleString()} so'm</span>
+          </div>`;
+        }).join('')}
+        ${history.length > 3 ? `<div style="font-size:.58rem;color:var(--text3);text-align:center;margin-top:2px">+ yana ${history.length-3} ta</div>` : ''}
+      </div>` : '';
 
     return `
     <div style="background:var(--bg2);border:1px solid ${borderColor};border-radius:12px;padding:12px 13px;margin-bottom:8px">
       <!-- Ism + toggle -->
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
-        <div id="pi-av-${sid}" style="width:33px;height:33px;border-radius:50%;background:${defaultPaid?'#10B981':'var(--blue)'};
+        <div id="pi-av-${sid}" style="width:33px;height:33px;border-radius:50%;
+             background:${defaultPaid?'#10B981':'var(--blue)'};
              display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:.85rem;flex-shrink:0">
           ${s.name.charAt(0)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:.86rem;font-weight:700;color:var(--text1)">${s.name}${dueBadge}</div>
           <div id="pi-st-${sid}" style="font-size:.62rem;font-weight:700;color:${defaultPaid?'#10B981':'#F59E0B'}">
-            ${defaultPaid?'✅ To\'langan':'⏳ Kutilmoqda'}</div>
+            ${defaultPaid?'✅ To\'langan':'⏳ Kutilmoqda'}${joinHint}</div>
         </div>
-        <button id="pi-tog-${sid}" onclick="togglePayInline('${sid}')"
+        <!-- data-on attribute bilan toggle — style.background dan mustaqil -->
+        <button id="pi-tog-${sid}" data-on="${defaultPaid?'1':'0'}" onclick="togglePayInline('${sid}')"
           style="width:52px;height:28px;border-radius:14px;border:none;cursor:pointer;position:relative;flex-shrink:0;
-                 background:${defaultPaid?'#10B981':'rgba(255,255,255,.1)'};transition:background .2s">
+                 background:${defaultPaid?'#10B981':'rgba(255,255,255,.15)'};transition:background .2s">
           <div style="position:absolute;top:3px;${defaultPaid?'right:3px':'left:3px'};width:22px;height:22px;
                border-radius:50%;background:#fff;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></div>
         </button>
@@ -969,7 +1040,8 @@ window.renderPayments = function() {
                    border-radius:8px;color:var(--text1);font-size:.82rem;font-weight:700;outline:none;font-family:inherit">
         </div>
       </div>
-      ${dueHint}
+      ${cycleHint}
+      ${histHtml}
     </div>`;
   }).join('');
 
@@ -986,21 +1058,22 @@ window.renderPayments = function() {
   container.innerHTML = settingsCard + summaryBar + list + saveAllBtn;
 };
 
-// ─── Inline toggle ─────────────────────────────────────────────
+// ─── Inline toggle — data-on attribute orqali (style.background emas) ──────
 window.togglePayInline = function(sid) {
-  const tog = document.getElementById('pi-tog-' + sid);
-  const av  = document.getElementById('pi-av-'  + sid);
-  const st  = document.getElementById('pi-st-'  + sid);
+  const tog   = document.getElementById('pi-tog-' + sid);
+  const av    = document.getElementById('pi-av-'  + sid);
+  const st    = document.getElementById('pi-st-'  + sid);
   if (!tog) return;
-  const isOn = !tog.style.background.includes('10B981');
-  tog.style.background = isOn ? '#10B981' : 'rgba(255,255,255,.1)';
+  const isOn  = tog.dataset.on !== '1';      // yangi holat
+  tog.dataset.on = isOn ? '1' : '0';
+  tog.style.background = isOn ? '#10B981' : 'rgba(255,255,255,.15)';
   const thumb = tog.querySelector('div');
   if (thumb) { thumb.style.right = isOn ? '3px' : 'auto'; thumb.style.left = isOn ? 'auto' : '3px'; }
   if (av)  av.style.background = isOn ? '#10B981' : 'var(--blue)';
-  if (st) { st.textContent = isOn ? '✅ To\'langan' : '⏳ Kutilmoqda'; st.style.color = isOn ? '#10B981' : '#F59E0B'; }
+  if (st)  { st.textContent = isOn ? '✅ To\'langan' : '⏳ Kutilmoqda'; st.style.color = isOn ? '#10B981' : '#F59E0B'; }
 };
 
-// ─── Hammasini saqlash ─────────────────────────────────────────
+// ─── Hammasini saqlash — data-on orqali + tarix ────────────────
 window.saveAllPayments = async function(gid) {
   const g = DATA.groups[gid];
   if (!g) return;
@@ -1015,14 +1088,17 @@ window.saveAllPayments = async function(gid) {
     const togEl  = document.getElementById('pi-tog-'  + sid);
     if (!amtEl) continue;
 
-    const amount   = parseInt(amtEl.value)  || 0;
-    const discount = parseFloat(discEl.value) || 0;
-    const dateIso  = displayToIso(dateEl.value) || today();
-    const paid     = togEl.style.background.includes('10B981');
+    const amount        = parseInt(amtEl.value)    || 0;
+    const discount      = parseFloat(discEl.value) || 0;
+    const dateIso       = displayToIso(dateEl.value) || today();
+    const paid          = togEl.dataset.on === '1';   // data-on dan o'qiymiz
+    const prevPay       = DATA.groups[gid].students[sid].payments || {};
+    const wasPaid       = !!prevPay.paid;
 
-    // dueDayOfMonth kiritilgan sanadan olinadi
+    // dueDayOfMonth kiritilgan sanadan
     const dueDayOfMonth = new Date(dateIso + 'T00:00:00').getDate();
-    // To'langan bo'lsa keyingi oyga siljitamiz
+
+    // keyingi to'lov sanasi
     let dueDate = dateIso;
     if (paid) {
       const nowD = new Date(); nowD.setHours(0,0,0,0);
@@ -1032,7 +1108,13 @@ window.saveAllPayments = async function(gid) {
       dueDate = next.toISOString().slice(0, 10);
     }
 
-    const payData = { amount, date: dateIso, paid, discount, dueDate, dueDayOfMonth };
+    // Tarixga qo'shamiz: faqat yangi to'langan bo'lsa
+    const history = Array.isArray(prevPay.history) ? prevPay.history.slice() : [];
+    if (paid && !wasPaid && amount > 0) {
+      history.push({ date: dateIso, amount });
+    }
+
+    const payData = { amount, date: dateIso, paid, discount, dueDate, dueDayOfMonth, history };
     DATA.groups[gid].students[sid].payments = payData;
     fbUpdates.push(fbSet('groups/' + gid + '/students/' + sid + '/payments', payData));
     count++;
@@ -1043,6 +1125,19 @@ window.saveAllPayments = async function(gid) {
   if (window._payDatesVisible) renderPayDates();
   toast('✅ ' + count + ' ta o\'quvchi to\'lovi saqlandi');
   Promise.all(fbUpdates).catch(function(e){ console.warn('fb:', e); });
+};
+
+// ─── To'lov tarixini o'chirish ────────────────────────────────
+window.deletePayHistory = async function(sid, gid) {
+  if (!confirm('To\'lov tarixini tozalash? Bu amalni qaytarib bo\'lmaydi.')) return;
+  if (!DATA.groups[gid]?.students?.[sid]) return;
+  DATA.groups[gid].students[sid].payments = DATA.groups[gid].students[sid].payments || {};
+  DATA.groups[gid].students[sid].payments.history = [];
+  saveLocal();
+  renderPayments();
+  toast('🗑️ Tarix tozalandi');
+  fbUpdate('groups/' + gid + '/students/' + sid + '/payments', { history: [] })
+    .catch(function(e){ console.warn('fb:', e); });
 };
 
 window.calcPayAmount = function() {
