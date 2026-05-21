@@ -174,7 +174,7 @@ function renderSamara(days) {
   let records = getValidRecords(sid, gid);
   if (days > 0) {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
-    records = records.filter(r => r.dateKey >= cutoff.toISOString().split('T')[0]);
+    records = records.filter(r => r.dateKey >= localIso(cutoff));
   }
 
   const { summary, advice } = buildSamaraHeader(records, uvMax, mtMax);
@@ -218,7 +218,7 @@ function renderAdminSamara(days) {
   let records = getValidRecords(sid, gid);
   if (days > 0) {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
-    records = records.filter(r => r.dateKey >= cutoff.toISOString().split('T')[0]);
+    records = records.filter(r => r.dateKey >= localIso(cutoff));
   }
 
   const { summary, advice } = buildSamaraHeader(records, uvMax, mtMax);

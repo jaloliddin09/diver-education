@@ -38,7 +38,7 @@ function renderProfile() {
     todayD.setHours(0, 0, 0, 0);
     nextDue.setHours(0, 0, 0, 0);
     daysLeft = Math.ceil((nextDue - todayD) / 86400000);
-    nextDueStr = nextDue.toISOString().slice(0, 10);
+    nextDueStr = localIso(nextDue);
     const fmtNextDue = fmtDate(nextDueStr);
 
     // Ogohlantirish banneri

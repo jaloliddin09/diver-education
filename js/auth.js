@@ -244,7 +244,7 @@ function enterParent() {
       const todayD = new Date(); todayD.setHours(0,0,0,0); nextDue.setHours(0,0,0,0);
       const daysLeft = Math.ceil((nextDue - todayD) / 86400000);
       if (daysLeft <= 3) {
-        const nextDueStr = nextDue.toISOString().slice(0,10);
+        const nextDueStr = localIso(nextDue);
         _tryPaymentNotification(daysLeft, typeof fmtDate === 'function' ? fmtDate(nextDueStr) : nextDueStr, nextDueStr);
       }
     }

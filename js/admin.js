@@ -158,7 +158,7 @@ function renderAdminGroupCards(gid, period) {
     const periodAvg = getAvg(sid, gid, period);
     // Last login date
     const lastLoginAt = s.lastLoginAt || null;
-    const loginedToday = lastLoginAt && new Date(lastLoginAt).toISOString().split('T')[0] === todayKey;
+    const loginedToday = lastLoginAt && localIso(new Date(lastLoginAt)) === todayKey;
     return { sid, s, todayRec, periodAvg, loginedToday, lastLoginAt };
   });
 
@@ -510,7 +510,7 @@ window.clearGroupRecords = async function(gid, range) {
       return d >= weekAgo;
     }
     if (range === 'month') {
-      return dateStr.slice(0, 7) === now.toISOString().slice(0, 7);
+      return dateStr.slice(0, 7) === today().slice(0, 7);
     }
     return false;
   }
@@ -1105,7 +1105,7 @@ window.saveAllPayments = async function(gid) {
       const y = nowD.getFullYear(), mo = nowD.getMonth();
       let next = new Date(y, mo, dueDayOfMonth);
       if (next <= nowD) next = new Date(y, mo + 1, dueDayOfMonth);
-      dueDate = next.toISOString().slice(0, 10);
+      dueDate = localIso(next);
     }
 
     // Tarixga qo'shamiz: faqat yangi to'langan bo'lsa
@@ -1220,7 +1220,7 @@ window.savePayment = async function() {
     const y = nowD.getFullYear(), mo = nowD.getMonth();
     let next = new Date(y, mo, dueDayOfMonth);
     if (next <= nowD) next = new Date(y, mo + 1, dueDayOfMonth);
-    dueDate = next.toISOString().slice(0, 10);
+    dueDate = localIso(next);
   }
 
   const payData = { amount, date, paid, discount, dueDate, dueDayOfMonth };
@@ -1322,8 +1322,8 @@ window.renderPayDates = function() {
       // Timeline bar
       const prevDate = dueDate
         ? (function(){
-            const d = new Date(dueDate); d.setMonth(d.getMonth()-1);
-            return d.toISOString().slice(0,10);
+            const d = new Date(dueDate + 'T00:00:00'); d.setMonth(d.getMonth()-1);
+            return localIso(d);
           })()
         : '';
       const timelineHtml = dueDate ? `
@@ -1438,13 +1438,13 @@ function getPayBillingMonth(payDate, dueDate) {
     end = new Date(start);
     end.setMonth(end.getMonth() + 1);
   }
-  if (end <= start) return start.toISOString().slice(0, 7);
+  if (end <= start) return localIso(start).slice(0, 7);
 
   // Har bir kun qaysi oyda ekanligini hisoblaymiz
   const monthCounts = {};
   const cur = new Date(start);
   while (cur < end) {
-    const ym = cur.toISOString().slice(0, 7);
+    const ym = localIso(cur).slice(0, 7);
     monthCounts[ym] = (monthCounts[ym] || 0) + 1;
     cur.setDate(cur.getDate() + 1);
   }
@@ -1485,7 +1485,7 @@ window.renderHisobKitob = function() {
   const groups   = DATA.groups || {};
   const mode     = window._hisobMode || 'month';
   const nowD     = new Date(); nowD.setHours(0,0,0,0);
-  const nowYM    = nowD.toISOString().slice(0, 7);
+  const nowYM    = localIso(nowD).slice(0, 7);
   const nowMonthName = _fmtMonth(nowYM);
 
   // ─── Mode toggle ─────────────────────────────────────────

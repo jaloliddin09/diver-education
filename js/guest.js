@@ -360,10 +360,10 @@ function getAvg(studentId, groupId, period) {
     const now = new Date();
     const day = now.getDay() || 7; // Mon=1..Sun=7
     const monDate = new Date(now); monDate.setDate(now.getDate() - day + 1);
-    const monKey = monDate.toISOString().split('T')[0];
+    const monKey = localIso(monDate);
     records = records.filter(r => r.dateKey >= monKey);
   } else if (period === 'month') {
-    const m = new Date().toISOString().slice(0,7);
+    const m = today().slice(0,7);
     records = records.filter(r => r.dateKey && r.dateKey.startsWith(m));
   } else if (period === 'all') {
     // all records

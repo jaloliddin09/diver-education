@@ -13,7 +13,12 @@ let _fbListener = null;
 // ============================================================
 // UTILS
 // ============================================================
-function today() { return new Date().toISOString().split('T')[0]; }
+// Mahalliy vaqtni ISO formatda qaytaradi (toISOString() UTC qaytaradi — UTC+5 da kun siljiydi)
+function localIso(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function today() { return localIso(new Date()); }
 function nowTs() { return Date.now(); }
 function genId() { return '_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
 
@@ -43,12 +48,13 @@ window.formatDateInput = function(inp) {
   inp.value = v;
 };
 // Takrorlanuvchi to'lov kuni: keyingi to'g'ri sana (shu oy yoki keyingi oy)
+// MUHIM: localIso() ishlatamiz — toISOString() UTC+5 da kun siljitadi
 function nextDueDateFromDay(day) {
   const now = new Date(); now.setHours(0, 0, 0, 0);
   const y = now.getFullYear(), mo = now.getMonth();
   let due = new Date(y, mo, day);
   if (due < now) due = new Date(y, mo + 1, day);
-  return due.toISOString().slice(0, 10);
+  return localIso(due);
 }
 
 function scoreClass(s) {
